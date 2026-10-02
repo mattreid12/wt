@@ -77,6 +77,12 @@
     color: var(--muted);
     margin-bottom: 1rem;
   }
+  .day-nav-btn {
+    padding: 2px 10px;
+    font-size: 16px;
+    line-height: 1;
+    min-width: 32px;
+  }
 
   /* ── Stats strip ── */
   .stats-strip {
@@ -291,7 +297,11 @@
   </div>
 
   <div class="card">
-    <div class="card-title" id="form-heading">Log today</div>
+    <div class="card-title" style="display:flex;align-items:center;gap:8px;">
+      <button class="btn btn-ghost day-nav-btn" id="btn-prev-day" onclick="navigateDay(-1)" title="Previous day">&#8592;</button>
+      <span id="form-heading" style="flex:1;text-align:center;">Log today</span>
+      <button class="btn btn-ghost day-nav-btn" id="btn-next-day" onclick="navigateDay(1)" title="Next day">&#8594;</button>
+    </div>
 
     <div class="form-grid" id="entry-form">
 
@@ -318,11 +328,15 @@
 
       <div class="form-group">
         <label for="f-fast-start">First meal (eating window start)</label>
-        <input type="time" id="f-fast-start" placeholder="12:00">
+        <select id="f-fast-start">
+          <option value="">— not set —</option>
+        </select>
       </div>
       <div class="form-group">
         <label for="f-fast-end">Last meal (eating window end)</label>
-        <input type="time" id="f-fast-end" placeholder="20:00">
+        <select id="f-fast-end">
+          <option value="">— not set —</option>
+        </select>
       </div>
 
       <div class="fast-display" id="fast-display">
@@ -842,17 +856,73 @@ function showPage(name) {
 //  TODAY PAGE
 // ═══════════════════════════════════════════════════
 
+// Build 15-minute-increment options for a time <select> (range startH..endH inclusive)
+function buildTimeOptions(selectId, startH = 6, endH = 23) {
+  const sel = document.getElementById(selectId);
+  // Keep the first "not set" option, remove the rest
+  while (sel.options.length > 1) sel.remove(1);
+  for (let h = startH; h <= endH; h++) {
+    for (let m = 0; m < 60; m += 15) {
+      const hh = String(h).padStart(2, '0');
+      const mm = String(m).padStart(2, '0');
+      const val = `${hh}:${mm}`;
+      const opt = document.createElement('option');
+      opt.value = val;
+      opt.textContent = val;
+      sel.appendChild(opt);
+    }
+  }
+}
+
 function initForm() {
+  buildTimeOptions('f-fast-start', 6, 22);
+  buildTimeOptions('f-fast-end',   9, 23);
+
   document.getElementById('f-date').value = todayStr();
   const entries = loadEntries();
   const existing = entries.find(e => e.date === todayStr());
   if (existing) populateForm(existing);
+  else updateFormHeading(todayStr());
 
   // Live fast duration calc
   ['f-fast-start', 'f-fast-end'].forEach(id =>
     document.getElementById(id).addEventListener('change', updateFastDisplay));
   updateFastDisplay();
   renderStats();
+}
+
+function updateFormHeading(dateStr) {
+  const isToday = dateStr === todayStr();
+  document.getElementById('form-heading').textContent =
+    isToday ? 'Log today' : 'Edit entry — ' + fmtDate(dateStr);
+  // Show/hide next-day button (don't navigate into the future)
+  document.getElementById('btn-next-day').style.visibility =
+    dateStr >= todayStr() ? 'hidden' : 'visible';
+}
+
+function navigateDay(delta) {
+  const current = document.getElementById('f-date').value || todayStr();
+  const d = new Date(current + 'T00:00:00');
+  d.setDate(d.getDate() + delta);
+  const newDate = d.toISOString().slice(0, 10);
+  // Don't navigate into the future
+  if (newDate > todayStr()) return;
+  const entries = loadEntries();
+  const existing = entries.find(e => e.date === newDate);
+  if (existing) {
+    populateForm(existing);
+  } else {
+    // Clear form fields but set the new date
+    document.getElementById('f-date').value = newDate;
+    ['f-weight','f-steps','f-drinks',
+     'f-rp','f-waist','f-bps','f-bpd','f-notes'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('f-fast-start').value = '';
+    document.getElementById('f-fast-end').value = '';
+    updateFormHeading(newDate);
+    updateFastDisplay();
+  }
 }
 
 function populateForm(e) {
@@ -868,7 +938,7 @@ function populateForm(e) {
   document.getElementById('f-bpd').value     = e.bpd ?? '';
   document.getElementById('f-notes').value   = e.notes || '';
   updateFastDisplay();
-  document.getElementById('form-heading').textContent = 'Edit entry — ' + fmtDate(e.date);
+  updateFormHeading(e.date || todayStr());
 }
 
 function updateFastDisplay() {
@@ -932,11 +1002,13 @@ async function saveEntry() {
 
 function clearForm() {
   document.getElementById('f-date').value = todayStr();
-  ['f-weight','f-steps','f-drinks','f-fast-start','f-fast-end',
+  ['f-weight','f-steps','f-drinks',
    'f-rp','f-waist','f-bps','f-bpd','f-notes'].forEach(id => {
     document.getElementById(id).value = '';
   });
-  document.getElementById('form-heading').textContent = 'Log today';
+  document.getElementById('f-fast-start').value = '';
+  document.getElementById('f-fast-end').value = '';
+  updateFormHeading(todayStr());
   updateFastDisplay();
 }
 
