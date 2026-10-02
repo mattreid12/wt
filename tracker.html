@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Weight Tracker</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f8fa;
+    --surface: #ffffff;
+    --border: #e5e7eb;
+    --text: #1f2328;
+    --muted: #57606a;
+    --accent: #3b82d4;
+    --green: #16a34a;
+    --red: #dc2626;
+    --amber: #d97706;
+    --pill-bg: #eff6ff;
+    --pill-text: #1d4ed8;
+  }
+
+  body {
+    font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Layout ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+    height: 52px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  header h1 { font-size: 16px; font-weight: 600; }
+  nav { display: flex; gap: 0.25rem; }
+  nav button {
+    background: none;
+    border: none;
+    padding: 0.3rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  nav button.active, nav button:hover { background: var(--bg); color: var(--text); }
+  nav button.active { font-weight: 600; color: var(--accent); }
+
+  .page { display: none; max-width: 860px; margin: 0 auto; padding: 1.5rem; }
+  .page.active { display: block; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .card-title {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-bottom: 1rem;
+  }
+
+  /* ── Stats strip ── */
+  .stats-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  .stat-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.9rem 1rem;
+    text-align: center;
+  }
+  .stat-box .label { font-size: 11px; color: var(--muted); font-weight: 500; margin-bottom: 2px; }
+  .stat-box .value { font-size: 22px; font-weight: 700; }
+  .stat-box .sub { font-size: 11px; color: var(--muted); }
+  .stat-box.good .value { color: var(--green); }
+  .stat-box.warn .value { color: var(--amber); }
+  .stat-box.bad  .value { color: var(--red); }
+
+  /* ── Form ── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem 1.25rem;
+  }
+  .form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
+  .form-group { display: flex; flex-direction: column; gap: 3px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 12px; font-weight: 600; color: var(--muted); }
+  input[type="text"], input[type="number"], input[type="date"], input[type="time"], textarea {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.45rem 0.7rem;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text);
+    background: var(--surface);
+    width: 100%;
+  }
+  input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 64px; }
+
+  .section-sep {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    padding: 0.75rem 0 0.4rem;
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--border);
+    margin-top: 0.25rem;
+  }
+  .section-sep:first-child { border-top: none; padding-top: 0; }
+
+  .hint { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1.1rem;
+    border-radius: 7px;
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #2563c0; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-ghost:hover { background: var(--bg); }
+  .btn-danger { background: transparent; border: 1px solid #fca5a5; color: var(--red); }
+  .btn-danger:hover { background: #fef2f2; }
+
+  .form-actions { display: flex; gap: 0.75rem; margin-top: 1.25rem; align-items: center; }
+  #save-status { font-size: 12px; color: var(--green); font-weight: 600; }
+
+  /* ── Fast display ── */
+  .fast-display {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg);
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    font-size: 13px;
+    color: var(--muted);
+    grid-column: 1 / -1;
+  }
+  .fast-display strong { color: var(--text); }
+
+  /* ── Chart ── */
+  #chart-canvas {
+    width: 100%;
+    height: 260px;
+    display: block;
+  }
+  .chart-legend {
+    display: flex;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    margin-top: 0.75rem;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .legend-item { display: flex; align-items: center; gap: 0.4rem; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .chart-controls { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+  .chart-controls button {
+    padding: 0.3rem 0.7rem;
+    border-radius: 5px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--muted);
+  }
+  .chart-controls button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* ── History table ── */
+  .history-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .history-table th {
+    text-align: left;
+    padding: 0.4rem 0.6rem;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .history-table td {
+    padding: 0.45rem 0.6rem;
+    border-bottom: 1px solid var(--bg);
+    vertical-align: top;
+  }
+  .history-table tr:last-child td { border-bottom: none; }
+  .history-table tr:hover td { background: var(--bg); }
+  .history-table tr.today-row td { background: #eff6ff; }
+
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    padding: 1px 7px;
+    border-radius: 20px;
+    font-weight: 600;
+    background: var(--pill-bg);
+    color: var(--pill-text);
+  }
+  .tag.gym { background: #f0fdf4; color: #16a34a; }
+  .tag.drink { background: #fff7ed; color: #c2410c; }
+
+  .delta { font-size: 11px; font-weight: 600; }
+  .delta.up { color: var(--red); }
+  .delta.down { color: var(--green); }
+  .delta.flat { color: var(--muted); }
+
+  .notes-cell { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 12px; }
+
+  .edit-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .edit-btn:hover { background: var(--bg); color: var(--accent); }
+
+  /* ── Empty state ── */
+  .empty { text-align: center; padding: 3rem 1rem; color: var(--muted); }
+  .empty p { margin-top: 0.5rem; font-size: 13px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 560px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .form-grid.three { grid-template-columns: 1fr 1fr; }
+    .stats-strip { grid-template-columns: repeat(3, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⚖️ Weight Tracker</h1>
+  <nav>
+    <button class="active" onclick="showPage('today')">Today</button>
+    <button onclick="showPage('chart')">Chart</button>
+    <button onclick="showPage('history')">History</button>
+    <button onclick="showPage('targets')">Targets</button>
+    <button onclick="showPage('settings')">⚙ Settings</button>
+  </nav>
+  <div style="margin-left:auto;display:flex;align-items:center;gap:0.5rem;">
+    <span id="sync-status" style="font-size:12px;color:var(--muted);"></span>
+  </div>
+</header>
+
+<!-- ═══════════════ TODAY PAGE ═══════════════ -->
+<div id="page-today" class="page active">
+
+  <div class="stats-strip" id="stats-strip">
+    <!-- populated by JS -->
+  </div>
+
+  <div class="card">
+    <div class="card-title" id="form-heading">Log today</div>
+
+    <div class="form-grid" id="entry-form">
+
+      <div class="section-sep">Core</div>
+
+      <div class="form-group">
+        <label for="f-date">Date</label>
+        <input type="date" id="f-date">
+      </div>
+      <div class="form-group">
+        <label for="f-weight">Weight (kg)</label>
+        <input type="number" id="f-weight" step="0.05" placeholder="e.g. 83.5">
+      </div>
+      <div class="form-group">
+        <label for="f-steps">Steps (thousands)</label>
+        <input type="number" id="f-steps" step="0.1" placeholder="e.g. 8.5">
+      </div>
+      <div class="form-group">
+        <label for="f-drinks">Drinks today</label>
+        <input type="number" id="f-drinks" step="1" min="0" placeholder="0">
+      </div>
+
+      <div class="section-sep">Intermittent Fasting</div>
+
+      <div class="form-group">
+        <label for="f-fast-start">First meal (eating window start)</label>
+        <input type="time" id="f-fast-start" placeholder="12:00">
+      </div>
+      <div class="form-group">
+        <label for="f-fast-end">Last meal (eating window end)</label>
+        <input type="time" id="f-fast-end" placeholder="20:00">
+      </div>
+
+      <div class="fast-display" id="fast-display">
+        ⏱ Fast duration: <strong id="fast-duration-text">—</strong>
+        <span id="fast-window-text" style="margin-left:auto;color:var(--muted);font-size:12px;"></span>
+      </div>
+
+      <div class="section-sep">Vitals <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
+
+      <div class="form-group">
+        <label for="f-rp">Resting pulse (bpm)</label>
+        <input type="number" id="f-rp" step="1" placeholder="e.g. 58">
+      </div>
+      <div class="form-group">
+        <label for="f-waist">Waist (cm)</label>
+        <input type="number" id="f-waist" step="0.5" placeholder="e.g. 91">
+      </div>
+      <div class="form-group">
+        <label for="f-bps">BP systolic</label>
+        <input type="number" id="f-bps" step="1" placeholder="e.g. 120">
+      </div>
+      <div class="form-group">
+        <label for="f-bpd">BP diastolic</label>
+        <input type="number" id="f-bpd" step="1" placeholder="e.g. 78">
+      </div>
+
+      <div class="section-sep">Gym / Notes <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
+
+      <div class="form-group full">
+        <label for="f-notes">Notes (gym workout, events, etc.)</label>
+        <textarea id="f-notes" placeholder="e.g. Gym - 5m xt wu, 5xGEM [shoulder:30[WT9], chest:55[WW8]…]"></textarea>
+      </div>
+
+    </div>
+
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="saveEntry()">Save entry</button>
+      <button class="btn btn-ghost" onclick="clearForm()">Clear</button>
+      <span id="save-status"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ CHART PAGE ═══════════════ -->
+<div id="page-chart" class="page">
+  <div class="card">
+    <div class="card-title">Weight trend</div>
+    <div class="chart-controls" id="chart-range-controls">
+      <button onclick="setChartRange(30)" id="cr-30">30 days</button>
+      <button onclick="setChartRange(60)" id="cr-60">60 days</button>
+      <button onclick="setChartRange(90)" id="cr-90">90 days</button>
+      <button onclick="setChartRange(0)" id="cr-all" class="active">All</button>
+    </div>
+    <canvas id="chart-canvas"></canvas>
+    <div class="chart-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#94a3b8"></div> Daily weight</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3b82d4"></div> 7-day weighted avg</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3b82d4;opacity:0.5;border-radius:2px;height:2px;width:18px"></div> Projected trajectory</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f87171;border-radius:2px;height:2px;width:18px"></div> Target</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Steps trend</div>
+    <canvas id="steps-canvas" style="width:100%;height:180px;display:block;"></canvas>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Alcohol (weekly units, rolling 7-day)</div>
+    <canvas id="alcohol-canvas" style="width:100%;height:160px;display:block;"></canvas>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px;" id="alcohol-target-label">Target: ≤21 units/week. Each drink counted as 2 units.</div>
+  </div>
+</div>
+
+<!-- ═══════════════ HISTORY PAGE ═══════════════ -->
+<div id="page-history" class="page">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+    <div style="font-size:13px;color:var(--muted);" id="history-count"></div>
+    <div style="display:flex;gap:0.5rem;">
+      <input type="text" id="history-search" placeholder="Search notes…" style="width:180px;padding:0.3rem 0.6rem;font-size:13px;" oninput="renderHistory()">
+      <button class="btn btn-ghost" onclick="exportCSV()" style="font-size:12px;padding:0.3rem 0.75rem;">Export CSV</button>
+    </div>
+  </div>
+  <div class="card" style="padding:0;overflow:auto;">
+    <table class="history-table" id="history-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Weight</th>
+          <th>Δ</th>
+          <th>7d-avg</th>
+          <th>Fast</th>
+          <th>Steps</th>
+          <th>Drinks</th>
+          <th>7d-units</th>
+          <th>RP</th>
+          <th>Notes</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="history-body"></tbody>
+    </table>
+    <div id="history-empty" class="empty" style="display:none;">
+      <strong>No entries yet</strong>
+      <p>Log your first day on the Today tab.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ TARGETS PAGE ═══════════════ -->
+<div id="page-targets" class="page">
+
+  <div class="card">
+    <div class="card-title">Weight target milestones
+      <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:12px;color:var(--muted);margin-left:0.5rem;">weekly plan from the Rnd sheet — edit to adjust</span>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="history-table" id="milestones-table" style="font-size:13px;">
+        <thead><tr><th>#</th><th>Date</th><th>Target (kg)</th><th></th></tr></thead>
+        <tbody id="milestones-body"></tbody>
+      </table>
+    </div>
+    <div class="form-actions" style="margin-top:0.75rem;">
+      <button class="btn btn-ghost" onclick="addMilestone()">+ Add row</button>
+      <button class="btn btn-primary" onclick="saveTargets()">Save targets</button>
+      <span id="targets-status"></span>
+    </div>
+    <div id="target-summary" style="margin-top:1rem;padding:0.75rem 1rem;background:var(--bg);border-radius:6px;border:1px solid var(--border);font-size:13px;color:var(--muted);line-height:1.8;"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Daily targets</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="t-steps">Steps target (thousands/day)</label>
+        <input type="number" id="t-steps" step="0.5" placeholder="10">
+      </div>
+      <div class="form-group">
+        <label for="t-units">Max weekly alcohol units</label>
+        <input type="number" id="t-units" step="1" placeholder="21">
+      </div>
+      <div class="form-group">
+        <label for="t-fast">Minimum fast duration (hours)</label>
+        <input type="number" id="t-fast" step="0.5" placeholder="16">
+      </div>
+      <div class="form-group">
+        <label for="t-rp">Resting pulse target (bpm)</label>
+        <input type="number" id="t-rp" step="1" placeholder="e.g. 55">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="saveTargets()">Save targets</button>
+      <span id="targets-status2"></span>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════ SETTINGS PAGE ═══════════════ -->
+<div id="page-settings" class="page">
+
+  <div class="card">
+    <div class="card-title">GitHub storage</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:1rem;line-height:1.7;">
+      Your data is stored as JSON files in a GitHub repository and served via GitHub Pages.
+      Create a <strong>Personal Access Token</strong> with <code>Contents: read &amp; write</code> scope
+      at <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a>,
+      then enter the details below. These settings are saved locally in this browser only.
+    </p>
+    <div class="form-grid">
+      <div class="form-group">
+        <label for="s-owner">GitHub username / org</label>
+        <input type="text" id="s-owner" placeholder="e.g. mattreid">
+      </div>
+      <div class="form-group">
+        <label for="s-repo">Repository name</label>
+        <input type="text" id="s-repo" placeholder="e.g. wt-tracker">
+      </div>
+      <div class="form-group">
+        <label for="s-branch">Branch</label>
+        <input type="text" id="s-branch" placeholder="main">
+      </div>
+      <div class="form-group">
+        <label for="s-pat">Personal Access Token</label>
+        <input type="password" id="s-pat" placeholder="ghp_…" autocomplete="off">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="saveSettings()">Save &amp; connect</button>
+      <button class="btn btn-ghost" onclick="testConnection()">Test connection</button>
+      <span id="settings-status"></span>
+    </div>
+  </div>
+
+  <div class="card" id="sync-card">
+    <div class="card-title">Data sync</div>
+    <div style="font-size:13px;color:var(--muted);line-height:1.8;" id="sync-info">
+      Configure GitHub above to enable cloud sync.
+    </div>
+    <div class="form-actions" style="margin-top:0.75rem;">
+      <button class="btn btn-ghost" onclick="forcePull()" id="btn-pull">↓ Pull from GitHub</button>
+      <button class="btn btn-ghost" onclick="exportCSV()">Export CSV</button>
+      <span id="sync-card-status"></span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  DATA LAYER
+// ═══════════════════════════════════════════════════
+
+const STORAGE_KEY   = 'wt26_entries';
+const TARGETS_KEY   = 'wt26_targets';
+const SETTINGS_KEY  = 'wt26_settings';
+
+// Weekly milestone target weights from the Rnd sheet (col A = date, col C = target)
+// Covers the current plan period from 29 Sep 2026 onwards
+const DEFAULT_MILESTONES = [
+  ['2026-09-29', 94  ],
+  ['2026-10-06', 92  ],
+  ['2026-10-13', 90.5],
+  ['2026-10-20', 89  ],
+  ['2026-10-27', 88  ],
+  ['2026-11-03', 87  ],
+  ['2026-11-10', 86  ],
+  ['2026-11-17', 85  ],
+  ['2026-11-24', 84  ],
+  ['2026-12-01', 83.5],
+  ['2026-12-08', 83  ],
+  ['2026-12-15', 82.5],
+  ['2026-12-22', 82  ],
+  ['2026-12-29', 82  ],
+  ['2026-12-31', 82  ],
+];
+
+const DEFAULT_TARGETS = {
+  milestones: DEFAULT_MILESTONES,
+  steps:      10,
+  units:      21,
+  fast:       16,
+  rp:         null,
+};
+
+// ── Settings (always localStorage — credentials stay local) ──
+
+function loadSettings() {
+  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch { return {}; }
+}
+function persistSettings(s) {
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+}
+function isConfigured() {
+  const s = loadSettings();
+  return !!(s.pat && s.owner && s.repo);
+}
+
+// ── In-memory cache (authoritative while page is open) ──
+let _entries  = null;   // Array
+let _targets  = null;   // Object
+let _sha      = {};     // { 'data.json': sha, 'targets.json': sha }
+
+// ── GitHub Contents API helpers ──
+
+function ghHeaders() {
+  const { pat } = loadSettings();
+  return {
+    'Authorization': `Bearer ${pat}`,
+    'Accept': 'application/vnd.github+json',
+    'X-GitHub-Api-Version': '2022-11-28',
+  };
+}
+
+function ghUrl(file) {
+  const { owner, repo, branch } = loadSettings();
+  return `https://api.github.com/repos/${owner}/${repo}/contents/${file}?ref=${branch || 'main'}`;
+}
+
+async function ghGet(file) {
+  const res = await fetch(ghUrl(file), { headers: ghHeaders() });
+  if (!res.ok) throw new Error(`GitHub GET ${file}: ${res.status} ${res.statusText}`);
+  const json = await res.json();
+  _sha[file] = json.sha;
+  return JSON.parse(atob(json.content.replace(/\n/g, '')));
+}
+
+async function ghPut(file, data) {
+  const { branch } = loadSettings();
+  const body = {
+    message: `wt-tracker: update ${file}`,
+    content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
+    branch:  branch || 'main',
+    sha:     _sha[file],
+  };
+  const res = await fetch(ghUrl(file), {
+    method: 'PUT',
+    headers: { ...ghHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(`GitHub PUT ${file}: ${res.status} — ${err.message || res.statusText}`);
+  }
+  const json = await res.json();
+  _sha[file] = json.content.sha;  // update sha for next write
+}
+
+// ── Public data API (called by the rest of the app) ──
+
+function loadTargets() {
+  if (_targets) return _targets;
+  // Fall back to localStorage cache while GitHub loads
+  try {
+    const stored = JSON.parse(localStorage.getItem(TARGETS_KEY) || '{}');
+    const t = { ...DEFAULT_TARGETS, ...stored,
+      milestones: stored.milestones || DEFAULT_TARGETS.milestones };
+    _targets = t;
+    return t;
+  }
+  catch { return { ...DEFAULT_TARGETS }; }
+}
+
+async function loadTargetsAsync() {
+  if (isConfigured()) {
+    try {
+      const t = await ghGet('targets.json');
+      _targets = { ...DEFAULT_TARGETS, ...t,
+        milestones: t.milestones || DEFAULT_TARGETS.milestones };
+      localStorage.setItem(TARGETS_KEY, JSON.stringify(_targets));
+    } catch(e) {
+      console.warn('Could not load targets from GitHub, using cache:', e.message);
+    }
+  }
+  return loadTargets();
+}
+
+async function saveTargetsData(t) {
+  _targets = t;
+  localStorage.setItem(TARGETS_KEY, JSON.stringify(t));
+  if (isConfigured()) {
+    setSyncStatus('saving…');
+    try {
+      await ghPut('targets.json', t);
+      setSyncStatus('✓ saved', 'good');
+    } catch(e) {
+      setSyncStatus('⚠ save failed: ' + e.message, 'bad');
+    }
+  }
+}
+
+function loadEntries() {
+  if (_entries) return _entries;
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
+}
+
+async function loadEntriesAsync() {
+  if (isConfigured()) {
+    try {
+      const data = await ghGet('data.json');
+      _entries = data;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch(e) {
+      console.warn('Could not load entries from GitHub, using cache:', e.message);
+    }
+  }
+  return loadEntries();
+}
+
+async function saveEntries(entries) {
+  _entries = entries;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  if (isConfigured()) {
+    setSyncStatus('saving…');
+    try {
+      await ghPut('data.json', entries);
+      setSyncStatus('✓ saved', 'good');
+    } catch(e) {
+      setSyncStatus('⚠ save failed: ' + e.message, 'bad');
+    }
+  }
+}
+
+// ── Derived calculations ──────────────────────────
+
+function calcFastDuration(prevEnd, start) {
+  // Fast = time from end of previous day's eating to start of today's eating
+  // e.g. prev end 19:45, today start 12:00 → (24:00-19:45) + 12:00 = 16:15
+  if (!prevEnd || !start) return null;
+  const [ph, pm] = prevEnd.split(':').map(Number);
+  const [sh, sm] = start.split(':').map(Number);
+  const prevEndMin = ph * 60 + pm;
+  const startMin   = sh * 60 + sm;
+  const fastMin    = (24 * 60 - prevEndMin) + startMin;
+  if (fastMin <= 0 || fastMin > 24 * 60) return null;
+  return fastMin / 60;
+}
+
+function calcWeightedAvg(entries, upToIndex) {
+  // Weighted 7-day average: weights [1,2,3,4,5,6,7] newest=7
+  const weights = [1, 2, 3, 4, 5, 6, 7];
+  const slice = [];
+  for (let i = upToIndex; i >= 0 && slice.length < 7; i--) {
+    if (entries[i].weight != null) slice.unshift(entries[i].weight);
+  }
+  if (slice.length === 0) return null;
+  let wsum = 0, wt = 0;
+  for (let i = 0; i < slice.length; i++) {
+    const w = weights[weights.length - slice.length + i];
+    wsum += slice[i] * w;
+    wt += w;
+  }
+  return wsum / wt;
+}
+
+function calcSevenDayAvg(entries, upToIndex) {
+  const slice = [];
+  for (let i = upToIndex; i >= 0 && slice.length < 7; i--) {
+    if (entries[i].weight != null) slice.unshift(entries[i].weight);
+  }
+  if (!slice.length) return null;
+  return slice.reduce((a, b) => a + b, 0) / slice.length;
+}
+
+function calcRollingUnits(entries, upToIndex) {
+  // Sum drinks over last 7 days (inclusive), each drink = 2 units
+  let drinks = 0;
+  for (let i = upToIndex; i >= 0 && i > upToIndex - 7; i--) {
+    drinks += entries[i].drinks || 0;
+  }
+  return drinks * 2;
+}
+
+function calcStepAvg(entries, upToIndex) {
+  const slice = [];
+  for (let i = upToIndex; i >= 0 && slice.length < 7; i--) {
+    if (entries[i].steps != null) slice.unshift(entries[i].steps);
+  }
+  if (!slice.length) return null;
+  return slice.reduce((a, b) => a + b, 0) / slice.length;
+}
+
+function enrich(entries) {
+  // Sort by date ascending
+  const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+  return sorted.map((e, i) => ({
+    ...e,
+    weightedAvg: calcWeightedAvg(sorted, i),
+    sevenDayAvg: calcSevenDayAvg(sorted, i),
+    rollingUnits: calcRollingUnits(sorted, i),
+    stepAvg: calcStepAvg(sorted, i),
+    fastDuration: i > 0
+      ? calcFastDuration(sorted[i-1].fastEnd, e.fastStart)
+      : null,
+    delta: i > 0 && sorted[i-1].weight != null && e.weight != null
+      ? e.weight - sorted[i-1].weight : null,
+  }));
+}
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+// ── Find planned target weight for a date ─────────
+// Uses the weekly milestone table from the Rnd sheet, interpolating daily
+// between adjacent milestones (stepped plan, not linear overall).
+function targetWeight(dateStr) {
+  const ms = loadTargets().milestones;
+  if (!ms || !ms.length) return null;
+  const d = new Date(dateStr).getTime();
+  const d0 = new Date(ms[0][0]).getTime();
+  const dN = new Date(ms[ms.length - 1][0]).getTime();
+  if (d <= d0) return ms[0][1];
+  if (d >= dN) return ms[ms.length - 1][1];
+  // Find the bracketing pair and interpolate between them
+  for (let i = 1; i < ms.length; i++) {
+    const t1 = new Date(ms[i-1][0]).getTime();
+    const t2 = new Date(ms[i][0]).getTime();
+    if (d >= t1 && d <= t2) {
+      const frac = (d - t1) / (t2 - t1);
+      return ms[i-1][1] + frac * (ms[i][1] - ms[i-1][1]);
+    }
+  }
+  return ms[ms.length - 1][1];
+}
+
+// Convenience: first and last milestone dates/weights for chart axis bounds
+function getTargetBounds() {
+  const ms = loadTargets().milestones;
+  return {
+    start: { date: ms[0][0],           wt: ms[0][1] },
+    end:   { date: ms[ms.length-1][0], wt: ms[ms.length-1][1] },
+  };
+}
+
+// ═══════════════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════════════
+
+let currentPage = 'today';
+let chartRange = 0;
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelector(`nav button[onclick="showPage('${name}')"]`).classList.add('active');
+  currentPage = name;
+  if (name === 'today')    renderStats();
+  if (name === 'chart')    renderCharts();
+  if (name === 'history')  renderHistory();
+  if (name === 'targets')  initTargetsForm();
+  if (name === 'settings') initSettingsForm();
+}
+
+// ═══════════════════════════════════════════════════
+//  TODAY PAGE
+// ═══════════════════════════════════════════════════
+
+function initForm() {
+  document.getElementById('f-date').value = todayStr();
+  const entries = loadEntries();
+  const existing = entries.find(e => e.date === todayStr());
+  if (existing) populateForm(existing);
+
+  // Live fast duration calc
+  ['f-fast-start', 'f-fast-end'].forEach(id =>
+    document.getElementById(id).addEventListener('change', updateFastDisplay));
+  updateFastDisplay();
+  renderStats();
+}
+
+function populateForm(e) {
+  document.getElementById('f-date').value    = e.date || '';
+  document.getElementById('f-weight').value  = e.weight ?? '';
+  document.getElementById('f-steps').value   = e.steps ?? '';
+  document.getElementById('f-drinks').value  = e.drinks ?? '';
+  document.getElementById('f-fast-start').value = e.fastStart || '';
+  document.getElementById('f-fast-end').value   = e.fastEnd || '';
+  document.getElementById('f-rp').value      = e.rp ?? '';
+  document.getElementById('f-waist').value   = e.waist ?? '';
+  document.getElementById('f-bps').value     = e.bps ?? '';
+  document.getElementById('f-bpd').value     = e.bpd ?? '';
+  document.getElementById('f-notes').value   = e.notes || '';
+  updateFastDisplay();
+  document.getElementById('form-heading').textContent = 'Edit entry — ' + fmtDate(e.date);
+}
+
+function updateFastDisplay() {
+  const start = document.getElementById('f-fast-start').value;
+  const end   = document.getElementById('f-fast-end').value;
+  // For live display use same-day approximation: 24h minus eating window
+  const h = (start && end) ? (() => {
+    const [sh,sm] = start.split(':').map(Number);
+    const [eh,em] = end.split(':').map(Number);
+    const win = (eh*60+em)-(sh*60+sm);
+    return win > 0 ? (24*60-win)/60 : null;
+  })() : null;
+  const el = document.getElementById('fast-duration-text');
+  const winEl = document.getElementById('fast-window-text');
+  if (h === null) {
+    el.textContent = '—';
+    winEl.textContent = '';
+  } else {
+    const windowH = 24 - h;
+    el.textContent = h.toFixed(1) + 'h';
+    winEl.textContent = `(${windowH.toFixed(0)}h eating window)`;
+    el.style.color = h >= 16 ? 'var(--green)' : h >= 14 ? 'var(--amber)' : 'var(--red)';
+  }
+}
+
+function readForm() {
+  const num = (id) => { const v = document.getElementById(id).value; return v === '' ? null : parseFloat(v); };
+  const str = (id) => document.getElementById(id).value.trim() || null;
+  return {
+    date:      document.getElementById('f-date').value,
+    weight:    num('f-weight'),
+    steps:     num('f-steps'),
+    drinks:    num('f-drinks') ?? 0,
+    fastStart: str('f-fast-start'),
+    fastEnd:   str('f-fast-end'),
+    rp:        num('f-rp'),
+    waist:     num('f-waist'),
+    bps:       num('f-bps'),
+    bpd:       num('f-bpd'),
+    notes:     document.getElementById('f-notes').value.trim() || null,
+  };
+}
+
+async function saveEntry() {
+  const entry = readForm();
+  if (!entry.date) { alert('Please select a date.'); return; }
+
+  const status = document.getElementById('save-status');
+  status.textContent = 'Saving…';
+
+  const entries = loadEntries();
+  const idx = entries.findIndex(e => e.date === entry.date);
+  if (idx >= 0) entries[idx] = entry;
+  else entries.push(entry);
+  await saveEntries(entries);
+
+  status.textContent = '✓ Saved';
+  setTimeout(() => { status.textContent = ''; }, 2500);
+  renderStats();
+}
+
+function clearForm() {
+  document.getElementById('f-date').value = todayStr();
+  ['f-weight','f-steps','f-drinks','f-fast-start','f-fast-end',
+   'f-rp','f-waist','f-bps','f-bpd','f-notes'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('form-heading').textContent = 'Log today';
+  updateFastDisplay();
+}
+
+function renderStats() {
+  const entries = enrich(loadEntries());
+  const strip = document.getElementById('stats-strip');
+  if (!entries.length) { strip.innerHTML = ''; return; }
+
+  const last = entries[entries.length - 1];
+  const target = targetWeight(last.date);
+  const diff = last.weight != null ? (last.weight - target) : null;
+  const diffClass = diff == null ? '' : diff < -0.5 ? 'good' : diff < 0.5 ? '' : 'warn';
+
+  const units = last.rollingUnits;
+  const tgt = loadTargets();
+  const unitsClass = units <= tgt.units * 0.67 ? 'good' : units <= tgt.units ? 'warn' : 'bad';
+
+  const fast = last.fastDuration;
+  const fastClass = fast == null ? '' : fast >= tgt.fast ? 'good' : fast >= tgt.fast - 2 ? 'warn' : 'bad';
+
+  const stepsClass = last.steps == null ? '' : last.steps >= tgt.steps ? 'good' : last.steps >= tgt.steps * 0.7 ? 'warn' : 'bad';
+
+  strip.innerHTML = `
+    <div class="stat-box ${diffClass}">
+      <div class="label">Weight</div>
+      <div class="value">${last.weight != null ? last.weight.toFixed(2) : '—'}</div>
+      <div class="sub">target ${target.toFixed(1)} kg</div>
+    </div>
+    <div class="stat-box">
+      <div class="label">7d wtd avg</div>
+      <div class="value">${last.weightedAvg != null ? last.weightedAvg.toFixed(2) : '—'}</div>
+      <div class="sub">${last.delta != null ? (last.delta > 0 ? '+' : '') + last.delta.toFixed(2) + ' vs prev' : ''}</div>
+    </div>
+    <div class="stat-box ${fastClass}">
+      <div class="label">Fast today</div>
+      <div class="value">${fast != null ? fast.toFixed(1) + 'h' : '—'}</div>
+      <div class="sub">${last.fastStart && last.fastEnd ? last.fastStart + ' – ' + last.fastEnd : 'not set'}</div>
+    </div>
+    <div class="stat-box ${stepsClass}">
+      <div class="label">Steps (k)</div>
+      <div class="value">${last.steps != null ? last.steps.toFixed(1) : '—'}</div>
+      <div class="sub">target 10k</div>
+    </div>
+    <div class="stat-box ${unitsClass}">
+      <div class="label">Units (7d)</div>
+      <div class="value">${units.toFixed(0)}</div>
+      <div class="sub">target ≤21</div>
+    </div>
+    <div class="stat-box">
+      <div class="label">Rest pulse</div>
+      <div class="value">${last.rp != null ? last.rp : '—'}</div>
+      <div class="sub">bpm</div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════
+//  CHARTS
+// ═══════════════════════════════════════════════════
+
+function setChartRange(days) {
+  chartRange = days;
+  document.querySelectorAll('.chart-controls button').forEach(b => b.classList.remove('active'));
+  const id = days === 0 ? 'cr-all' : `cr-${days}`;
+  document.getElementById(id).classList.add('active');
+  renderCharts();
+}
+
+function filterByRange(enriched) {
+  if (chartRange === 0) return enriched;
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - chartRange);
+  const cut = cutoff.toISOString().slice(0, 10);
+  return enriched.filter(e => e.date >= cut);
+}
+
+function renderCharts() {
+  const all = enrich(loadEntries());
+  const data = filterByRange(all);
+  drawWeightChart(data);
+  drawStepsChart(data);
+  drawAlcoholChart(data);
+  const tgt = loadTargets();
+  const lbl = document.getElementById('alcohol-target-label');
+  if (lbl) lbl.textContent = `Target: ≤${tgt.units} units/week. Each drink counted as 2 units.`;
+}
+
+// ── Tiny canvas chart engine ──────────────────────
+
+function drawChart(canvasId, datasets, opts = {}) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = canvas.offsetWidth  * dpr;
+  canvas.height = canvas.offsetHeight * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const W = canvas.offsetWidth;
+  const H = canvas.offsetHeight;
+  const pad = { top: 14, right: 18, bottom: 36, left: 46 };
+  const pw = W - pad.left - pad.right;
+  const ph = H - pad.top  - pad.bottom;
+
+  // Determine y-range
+  let yMin = Infinity, yMax = -Infinity;
+  for (const ds of datasets) {
+    for (const v of ds.values) {
+      if (v != null && isFinite(v)) { yMin = Math.min(yMin, v); yMax = Math.max(yMax, v); }
+    }
+  }
+  if (opts.yMin != null) yMin = Math.min(yMin, opts.yMin);
+  if (opts.yMax != null) yMax = Math.max(yMax, opts.yMax);
+  if (yMin === yMax) { yMin -= 1; yMax += 1; }
+  const yRange = yMax - yMin;
+  const yPad = yRange * 0.08;
+  const yLo = yMin - yPad, yHi = yMax + yPad;
+  const n = datasets[0].values.length;
+
+  const toX = (i) => pad.left + (n <= 1 ? pw / 2 : i / (n - 1) * pw);
+  const toY = (v) => pad.top + (1 - (v - yLo) / (yHi - yLo)) * ph;
+
+  // Grid + axes
+  ctx.strokeStyle = '#e5e7eb';
+  ctx.lineWidth = 1;
+  const yTicks = 4;
+  ctx.font = '10px -apple-system,sans-serif';
+  ctx.fillStyle = '#57606a';
+  ctx.textAlign = 'right';
+  for (let t = 0; t <= yTicks; t++) {
+    const v = yLo + (yHi - yLo) * (t / yTicks);
+    const y = toY(v);
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    ctx.fillText(v.toFixed(opts.yDec ?? 1), pad.left - 4, y + 3);
+  }
+
+  // X labels: show ~6 evenly spaced dates
+  ctx.textAlign = 'center';
+  const xStep = Math.max(1, Math.floor(n / 6));
+  const labels = datasets[0].labels;
+  for (let i = 0; i < n; i += xStep) {
+    const x = toX(i);
+    const d = new Date(labels[i]);
+    const label = `${d.getDate()}/${d.getMonth() + 1}`;
+    ctx.fillText(label, x, H - pad.bottom + 14);
+    ctx.beginPath(); ctx.strokeStyle = '#e5e7eb'; ctx.moveTo(x, pad.top); ctx.lineTo(x, H - pad.bottom); ctx.stroke();
+  }
+
+  // Target line
+  if (opts.targetFn) {
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = '#f87171';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const tv = opts.targetFn(labels[i]);
+      const x = toX(i), y = toY(tv);
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Threshold line
+  if (opts.threshold != null) {
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = '#fbbf24';
+    ctx.lineWidth = 1.5;
+    const ty = toY(opts.threshold);
+    ctx.beginPath(); ctx.moveTo(pad.left, ty); ctx.lineTo(W - pad.right, ty); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Datasets
+  for (const ds of datasets) {
+    if (ds.type === 'bar') {
+      const bw = Math.max(2, pw / n * 0.6);
+      for (let i = 0; i < n; i++) {
+        const v = ds.values[i];
+        if (v == null) continue;
+        const x = toX(i);
+        const y = toY(v);
+        const base = toY(0) < H - pad.bottom ? toY(0) : H - pad.bottom;
+        ctx.fillStyle = ds.color || '#3b82d4';
+        ctx.fillRect(x - bw / 2, Math.min(y, base), bw, Math.abs(base - y));
+      }
+    } else {
+      // Line
+      ctx.strokeStyle = ds.color || '#3b82d4';
+      ctx.lineWidth = ds.lineWidth || 2;
+      ctx.lineJoin = 'round';
+      ctx.setLineDash(ds.dash || []);
+      ctx.beginPath();
+      let started = false;
+      for (let i = 0; i < n; i++) {
+        const v = ds.values[i];
+        if (v == null) { started = false; continue; }
+        const x = toX(i), y = toY(v);
+        if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Dots for small datasets
+      if (n <= 60 && ds.dots !== false) {
+        for (let i = 0; i < n; i++) {
+          const v = ds.values[i];
+          if (v == null) continue;
+          ctx.beginPath();
+          ctx.arc(toX(i), toY(v), 2.5, 0, Math.PI * 2);
+          ctx.fillStyle = ds.color || '#3b82d4';
+          ctx.fill();
+        }
+      }
+    }
+  }
+}
+
+function drawWeightChart(data) {
+  if (!data.length) return;
+
+  // Build a unified date axis: all recorded dates + every remaining day to end of target
+  const today = todayStr();
+  const { end } = getTargetBounds();
+  const endDate = end.date;
+  const allDates = new Set(data.map(e => e.date));
+
+  // Fill forward from last entry date to end of plan
+  const lastDate = data[data.length - 1].date;
+  let cur = new Date(lastDate + 'T00:00:00');
+  const endDt = new Date(endDate + 'T00:00:00');
+  while (cur <= endDt) {
+    allDates.add(cur.toISOString().slice(0, 10));
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  const labels = [...allDates].sort();
+  const dataByDate = Object.fromEntries(data.map(e => [e.date, e]));
+
+  const actualVals  = labels.map(d => dataByDate[d]?.weight      ?? null);
+  const avgVals     = labels.map(d => dataByDate[d]?.weightedAvg ?? null);
+  const targetVals  = labels.map(d => targetWeight(d));
+
+  // Projected: last known weighted avg → target end weight, from today onward
+  const lastKnownEntry = data[data.length - 1];
+  const lastAvg = lastKnownEntry.weightedAvg ?? lastKnownEntry.weight;
+  const projVals = labels.map(d => {
+    if (d <= today) return null;
+    if (!lastAvg) return null;
+    const t0 = new Date(today + 'T00:00:00').getTime();
+    const t1 = new Date(endDate + 'T00:00:00').getTime();
+    const td = new Date(d + 'T00:00:00').getTime();
+    if (t1 <= t0) return null;
+    const frac = (td - t0) / (t1 - t0);
+    return lastAvg + frac * (end.wt - lastAvg);
+  });
+
+  drawChart('chart-canvas', [
+    { labels, values: actualVals, color: '#94a3b8', lineWidth: 1.5 },
+    { labels, values: avgVals,    color: '#3b82d4', lineWidth: 2.5 },
+    { labels, values: projVals,   color: '#3b82d4', lineWidth: 1.5, dash: [5, 4], dots: false },
+    { labels, values: targetVals, color: '#f87171', lineWidth: 1.5, dash: [4, 4], dots: false },
+  ], { yMin: end.wt - 1, yDec: 1 });
+}
+
+function drawStepsChart(data) {
+  if (!data.length) return;
+  const labels = data.map(e => e.date);
+  const tgt = loadTargets();
+  drawChart('steps-canvas', [
+    { labels, values: data.map(e => e.steps),   color: '#6366f1', lineWidth: 1.5, type: 'bar' },
+    { labels, values: data.map(e => e.stepAvg), color: '#a78bfa', lineWidth: 2, dots: false },
+  ], { threshold: tgt.steps, yMin: 0, yDec: 0 });
+}
+
+function drawAlcoholChart(data) {
+  if (!data.length) return;
+  const labels = data.map(e => e.date);
+  const tgt = loadTargets();
+  drawChart('alcohol-canvas', [
+    { labels, values: data.map(e => e.rollingUnits), color: '#fb923c', lineWidth: 2 },
+  ], { threshold: tgt.units, yMin: 0, yDec: 0 });
+}
+
+// ═══════════════════════════════════════════════════
+//  HISTORY PAGE
+// ═══════════════════════════════════════════════════
+
+function renderHistory() {
+  const all = enrich(loadEntries());
+  const search = document.getElementById('history-search').value.toLowerCase().trim();
+  const filtered = search
+    ? all.filter(e => (e.notes || '').toLowerCase().includes(search) || e.date.includes(search))
+    : all;
+  const reversed = [...filtered].reverse();
+
+  document.getElementById('history-count').textContent =
+    `${filtered.length} entr${filtered.length === 1 ? 'y' : 'ies'}`;
+
+  const tbody = document.getElementById('history-body');
+  const empty = document.getElementById('history-empty');
+
+  if (!reversed.length) {
+    tbody.innerHTML = '';
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const today = todayStr();
+  tbody.innerHTML = reversed.map(e => {
+    const isToday = e.date === today;
+    const isGym = e.notes && /gym/i.test(e.notes);
+    const hasDrinks = (e.drinks || 0) > 0;
+
+    const deltaHtml = e.delta != null
+      ? `<span class="delta ${e.delta > 0.05 ? 'up' : e.delta < -0.05 ? 'down' : 'flat'}">${e.delta > 0 ? '+' : ''}${e.delta.toFixed(2)}</span>`
+      : '—';
+
+    const fastHtml = e.fastDuration != null
+      ? `${e.fastDuration.toFixed(1)}h`
+      : (e.fastStart ? e.fastStart : '—');
+
+    const notesHtml = e.notes
+      ? `<div class="notes-cell" title="${e.notes.replace(/"/g,'&quot;')}">${escHtml(e.notes)}</div>`
+      : '<span style="color:var(--muted)">—</span>';
+
+    const tags = [
+      isGym ? '<span class="tag gym">🏋️ gym</span>' : '',
+      hasDrinks ? `<span class="tag drink">🍷 ${e.drinks}</span>` : '',
+    ].filter(Boolean).join(' ');
+
+    return `<tr class="${isToday ? 'today-row' : ''}">
+      <td style="white-space:nowrap"><strong>${fmtDate(e.date)}</strong>${tags ? '<br>' + tags : ''}</td>
+      <td>${e.weight != null ? e.weight.toFixed(2) : '—'}</td>
+      <td>${deltaHtml}</td>
+      <td>${e.weightedAvg != null ? e.weightedAvg.toFixed(2) : '—'}</td>
+      <td style="white-space:nowrap">${fastHtml}</td>
+      <td>${e.steps != null ? e.steps.toFixed(1) + 'k' : '—'}</td>
+      <td>${e.drinks || 0}</td>
+      <td>${e.rollingUnits != null ? e.rollingUnits.toFixed(0) : '—'}</td>
+      <td>${e.rp != null ? e.rp : '—'}</td>
+      <td>${notesHtml}</td>
+      <td><button class="edit-btn" onclick="editEntry('${e.date}')" title="Edit">✎</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function editEntry(dateStr) {
+  const entries = loadEntries();
+  const e = entries.find(x => x.date === dateStr);
+  if (!e) return;
+  showPage('today');
+  populateForm(e);
+  window.scrollTo(0, 0);
+}
+
+// ═══════════════════════════════════════════════════
+//  TARGETS PAGE
+// ═══════════════════════════════════════════════════
+
+function initTargetsForm() {
+  const t = loadTargets();
+  document.getElementById('t-steps').value = t.steps ?? '';
+  document.getElementById('t-units').value = t.units ?? '';
+  document.getElementById('t-fast').value  = t.fast  ?? '';
+  document.getElementById('t-rp').value    = t.rp    ?? '';
+  renderMilestonesTable(t.milestones);
+  renderTargetSummary(t);
+}
+
+function renderMilestonesTable(milestones) {
+  const tbody = document.getElementById('milestones-body');
+  tbody.innerHTML = milestones.map((m, i) => `
+    <tr>
+      <td style="color:var(--muted);font-size:12px;">${i + 1}</td>
+      <td><input type="date" value="${m[0]}" onchange="updateMilestone(${i},0,this.value)"
+          style="border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:13px;width:140px;"></td>
+      <td><input type="number" value="${m[1]}" step="0.5" onchange="updateMilestone(${i},1,parseFloat(this.value))"
+          style="border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:13px;width:80px;"></td>
+      <td><button class="edit-btn" onclick="removeMilestone(${i})" title="Remove">✕</button></td>
+    </tr>`).join('');
+}
+
+// In-memory working copy of milestones while editing
+let _editingMilestones = null;
+
+function getMilestonesFromForm() {
+  return _editingMilestones || [...loadTargets().milestones];
+}
+
+function updateMilestone(i, col, val) {
+  if (!_editingMilestones) _editingMilestones = loadTargets().milestones.map(m => [...m]);
+  _editingMilestones[i][col] = val;
+}
+
+function removeMilestone(i) {
+  if (!_editingMilestones) _editingMilestones = loadTargets().milestones.map(m => [...m]);
+  _editingMilestones.splice(i, 1);
+  renderMilestonesTable(_editingMilestones);
+}
+
+function addMilestone() {
+  if (!_editingMilestones) _editingMilestones = loadTargets().milestones.map(m => [...m]);
+  const last = _editingMilestones[_editingMilestones.length - 1];
+  const nextDate = last ? new Date(new Date(last[0]).getTime() + 7 * 86400000).toISOString().slice(0,10) : todayStr();
+  _editingMilestones.push([nextDate, last ? last[1] : 82]);
+  renderMilestonesTable(_editingMilestones);
+}
+
+async function saveTargets() {
+  const num = (id) => { const v = document.getElementById(id).value; return v === '' ? null : parseFloat(v); };
+  const milestones = getMilestonesFromForm()
+    .filter(m => m[0] && m[1] != null)
+    .sort((a, b) => a[0].localeCompare(b[0]));
+  _editingMilestones = null;
+  const t = {
+    milestones,
+    steps: num('t-steps') ?? DEFAULT_TARGETS.steps,
+    units: num('t-units') ?? DEFAULT_TARGETS.units,
+    fast:  num('t-fast')  ?? DEFAULT_TARGETS.fast,
+    rp:    num('t-rp'),
+  };
+  await saveTargetsData(t);
+  renderMilestonesTable(milestones);
+  renderTargetSummary(t);
+  ['targets-status','targets-status2'].forEach(id => {
+    const el = document.getElementById(id);
+    el.textContent = '✓ Saved';
+    setTimeout(() => { el.textContent = ''; }, 2500);
+  });
+}
+
+function renderTargetSummary(t) {
+  const el = document.getElementById('target-summary');
+  const ms = t.milestones;
+  if (!ms || ms.length < 2) { el.innerHTML = ''; return; }
+  const startDate = ms[0][0], startWt = ms[0][1];
+  const endDate   = ms[ms.length-1][0], endWt = ms[ms.length-1][1];
+  const days = Math.round((new Date(endDate) - new Date(startDate)) / 86400000);
+  const totalLoss = startWt - endWt;
+  const weeks = days / 7;
+  const perWeek = weeks > 0 ? totalLoss / weeks : 0;
+  const today = todayStr();
+  const daysLeft = Math.max(0, Math.round((new Date(endDate) - new Date(today)) / 86400000));
+  const currentTarget = targetWeight(today);
+  el.innerHTML = `
+    <strong style="color:var(--text)">Plan summary</strong><br>
+    ${fmtDate(startDate)} → ${fmtDate(endDate)} &nbsp;·&nbsp; ${days} days &nbsp;·&nbsp; ${weeks.toFixed(1)} weeks<br>
+    Total loss: <strong>${totalLoss.toFixed(1)} kg</strong> &nbsp;·&nbsp; avg ${perWeek.toFixed(2)} kg/week<br>
+    Today's target: <strong>${currentTarget != null ? currentTarget.toFixed(1) : '—'} kg</strong> &nbsp;·&nbsp; ${daysLeft} days remaining
+  `;
+}
+
+// ═══════════════════════════════════════════════════
+//  EXPORT
+// ═══════════════════════════════════════════════════
+
+async function resetData() {
+  if (!confirm('Clear all data and reload the 4 seed entries from the spreadsheet?')) return;
+  _entries = null;
+  localStorage.removeItem(STORAGE_KEY);
+  await seedIfEmpty();
+  renderStats();
+  clearForm();
+}
+
+function exportCSV() {
+  const data = enrich(loadEntries());
+  const headers = ['date','weight','weightedAvg','sevenDayAvg','delta','fastStart','fastEnd','fastDuration',
+                   'steps','stepAvg','drinks','rollingUnits','rp','waist','bps','bpd','notes'];
+  const rows = data.map(e => headers.map(h => {
+    const v = e[h];
+    if (v == null) return '';
+    if (typeof v === 'string' && v.includes(',')) return `"${v.replace(/"/g,'""')}"`;
+    return typeof v === 'number' ? v.toFixed(4).replace(/\.?0+$/, '') : v;
+  }).join(','));
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'weight-tracker.csv';
+  a.click();
+}
+
+// ═══════════════════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════════════════
+
+function fmtDate(d) {
+  if (!d) return '';
+  const dt = new Date(d + 'T00:00:00');
+  return dt.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ═══════════════════════════════════════════════════
+//  SEED DATA
+// ═══════════════════════════════════════════════════
+
+async function seedIfEmpty() {
+  if (loadEntries().length > 0) return;
+  const seed = [
+    {date:'2026-09-29',weight:93.5, steps:11.7,drinks:0, fastStart:'13:30',fastEnd:'19:45',rp:76, waist:null,bps:null, bpd:null, notes:null},
+    {date:'2026-09-30',weight:92.8, steps:4,   drinks:0, fastStart:'12:00',fastEnd:'20:00',rp:73, waist:null,bps:137,  bpd:95,   notes:null},
+    {date:'2026-10-01',weight:93.3, steps:5.9, drinks:0, fastStart:'12:15',fastEnd:'20:45',rp:71, waist:null,bps:null, bpd:null, notes:'Gym - 5m xt wu @L12, 4xGEM [shoulder:20[WWW], rowf:50[WWE], chest:40[WW5j], pec:20[FT]], S.16[146]'},
+    {date:'2026-10-02',weight:93,   steps:null,drinks:0, fastStart:null,   fastEnd:null,   rp:70, waist:null,bps:null, bpd:null, notes:null},
+  ];
+  await saveEntries(seed);
+}
+
+// ═══════════════════════════════════════════════════
+//  SETTINGS PAGE
+// ═══════════════════════════════════════════════════
+
+function setSyncStatus(msg, type) {
+  const el = document.getElementById('sync-status');
+  el.textContent = msg;
+  el.style.color = type === 'good' ? 'var(--green)' : type === 'bad' ? 'var(--red)' : 'var(--muted)';
+  if (type === 'good') setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 3000);
+}
+
+function initSettingsForm() {
+  const s = loadSettings();
+  document.getElementById('s-owner').value  = s.owner  || '';
+  document.getElementById('s-repo').value   = s.repo   || '';
+  document.getElementById('s-branch').value = s.branch || 'main';
+  document.getElementById('s-pat').value    = s.pat    || '';
+  updateSyncInfo();
+}
+
+function saveSettings() {
+  const s = {
+    owner:  document.getElementById('s-owner').value.trim(),
+    repo:   document.getElementById('s-repo').value.trim(),
+    branch: document.getElementById('s-branch').value.trim() || 'main',
+    pat:    document.getElementById('s-pat').value.trim(),
+  };
+  persistSettings(s);
+  updateSyncInfo();
+  const el = document.getElementById('settings-status');
+  el.style.color = 'var(--green)';
+  el.textContent = '✓ Saved — reload to sync from GitHub';
+}
+
+async function testConnection() {
+  const el = document.getElementById('settings-status');
+  el.style.color = 'var(--muted)';
+  el.textContent = 'Testing…';
+  try {
+    const s = loadSettings();
+    const url = `https://api.github.com/repos/${s.owner}/${s.repo}`;
+    const res = await fetch(url, { headers: ghHeaders() });
+    if (res.ok) {
+      const j = await res.json();
+      el.style.color = 'var(--green)';
+      el.textContent = `✓ Connected to ${j.full_name} (${j.default_branch})`;
+    } else {
+      throw new Error(`${res.status} ${res.statusText}`);
+    }
+  } catch(e) {
+    el.style.color = 'var(--red)';
+    el.textContent = '✗ ' + e.message;
+  }
+}
+
+async function forcePull() {
+  const el = document.getElementById('sync-card-status');
+  el.style.color = 'var(--muted)';
+  el.textContent = 'Pulling…';
+  try {
+    _entries = null; _targets = null; _sha = {};
+    await loadEntriesAsync();
+    await loadTargetsAsync();
+    el.style.color = 'var(--green)';
+    el.textContent = '✓ Pulled from GitHub';
+    updateSyncInfo();
+    renderStats();
+  } catch(e) {
+    el.style.color = 'var(--red)';
+    el.textContent = '✗ ' + e.message;
+  }
+}
+
+function updateSyncInfo() {
+  const el = document.getElementById('sync-info');
+  if (!isConfigured()) {
+    el.textContent = 'Configure GitHub above to enable cloud sync.';
+    return;
+  }
+  const s = loadSettings();
+  const entries = loadEntries();
+  const lastEntry = entries.length
+    ? [...entries].sort((a,b) => b.date.localeCompare(a.date))[0]
+    : null;
+  el.innerHTML = `
+    <strong style="color:var(--text)">Connected</strong> — ${s.owner}/${s.repo} (${s.branch || 'main'})<br>
+    ${entries.length} entries cached locally &nbsp;·&nbsp;
+    Last entry: ${lastEntry ? fmtDate(lastEntry.date) : 'none'}<br>
+    Data files: <code>data.json</code>, <code>targets.json</code> in repo root.
+    Served at <code>https://${s.owner}.github.io/${s.repo}/</code>
+  `;
+}
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+
+async function init() {
+  // 1. Load from GitHub (or fall back to localStorage cache)
+  setSyncStatus('syncing…');
+  await Promise.all([loadEntriesAsync(), loadTargetsAsync()]);
+  setSyncStatus('');
+
+  // 2. Seed only if truly empty (no cache, no GitHub data)
+  await seedIfEmpty();
+
+  // 3. Render UI
+  initForm();
+}
+
+init();
+
+// Redraw charts on resize
+window.addEventListener('resize', () => {
+  if (currentPage === 'chart') renderCharts();
+});
+</script>
+</body>
+</html>
