@@ -426,8 +426,9 @@
         <tr>
           <th>Date</th>
           <th>Weight</th>
-          <th>Δ</th>
+          <th>Target</th>
           <th>7d-avg</th>
+          <th>Δ avg vs target</th>
           <th>Fast</th>
           <th>Steps</th>
           <th>Drinks</th>
@@ -895,9 +896,9 @@ function updateFormHeading(dateStr) {
   const isToday = dateStr === todayStr();
   document.getElementById('form-heading').textContent =
     isToday ? 'Log today' : 'Edit entry — ' + fmtDate(dateStr);
-  // Show/hide next-day button (don't navigate into the future)
+  // Hide → only when already on today (can't go further forward)
   document.getElementById('btn-next-day').style.visibility =
-    dateStr >= todayStr() ? 'hidden' : 'visible';
+    isToday ? 'hidden' : 'visible';
 }
 
 function navigateDay(delta) {
@@ -1323,8 +1324,10 @@ function renderHistory() {
     const isGym = e.notes && /gym/i.test(e.notes);
     const hasDrinks = (e.drinks || 0) > 0;
 
-    const deltaHtml = e.delta != null
-      ? `<span class="delta ${e.delta > 0.05 ? 'up' : e.delta < -0.05 ? 'down' : 'flat'}">${e.delta > 0 ? '+' : ''}${e.delta.toFixed(2)}</span>`
+    const tgt = targetWeight(e.date);
+    const avgDelta = (e.weightedAvg != null && tgt != null) ? (e.weightedAvg - tgt) : null;
+    const avgDeltaHtml = avgDelta != null
+      ? `<span class="delta ${avgDelta > 0.2 ? 'up' : avgDelta < -0.2 ? 'down' : 'flat'}">${avgDelta > 0 ? '+' : ''}${avgDelta.toFixed(2)}</span>`
       : '—';
 
     const fastHtml = e.fastDuration != null
@@ -1343,8 +1346,9 @@ function renderHistory() {
     return `<tr class="${isToday ? 'today-row' : ''}">
       <td style="white-space:nowrap"><strong>${fmtDate(e.date)}</strong>${tags ? '<br>' + tags : ''}</td>
       <td>${e.weight != null ? e.weight.toFixed(2) : '—'}</td>
-      <td>${deltaHtml}</td>
+      <td>${tgt != null ? tgt.toFixed(2) : '—'}</td>
       <td>${e.weightedAvg != null ? e.weightedAvg.toFixed(2) : '—'}</td>
+      <td>${avgDeltaHtml}</td>
       <td style="white-space:nowrap">${fastHtml}</td>
       <td>${e.steps != null ? e.steps.toFixed(1) + 'k' : '—'}</td>
       <td>${e.drinks || 0}</td>
