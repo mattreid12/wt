@@ -798,7 +798,10 @@ function enrich(entries) {
 }
 
 function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
 }
 
 // ── Find planned target weight for a date ─────────
@@ -903,9 +906,11 @@ function updateFormHeading(dateStr) {
 
 function navigateDay(delta) {
   const current = document.getElementById('f-date').value || todayStr();
-  const d = new Date(current + 'T00:00:00');
-  d.setDate(d.getDate() + delta);
-  const newDate = d.toISOString().slice(0, 10);
+  const [y, mo, dy] = current.split('-').map(Number);
+  const d = new Date(y, mo - 1, dy + delta);
+  const newDate = d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
   // Don't navigate into the future
   if (newDate > todayStr()) return;
   const entries = loadEntries();
