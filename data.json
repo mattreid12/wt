@@ -41,15 +41,15 @@
   {
     "date": "2026-10-02",
     "weight": 93,
-    "steps": null,
+    "steps": 6.6,
     "drinks": 0,
     "fastStart": "12:15",
-    "fastEnd": null,
+    "fastEnd": "22:30",
     "rp": 70,
     "waist": null,
     "bps": null,
     "bpd": null,
-    "notes": null
+    "notes": "Koyal"
   },
   {
     "date": "2026-10-03",
