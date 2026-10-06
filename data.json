@@ -95,12 +95,12 @@
     "weight": 92.15,
     "steps": null,
     "drinks": 0,
-    "fastStart": null,
-    "fastEnd": null,
+    "fastStart": "13:00",
+    "fastEnd": "18:00",
     "rp": 70,
     "waist": null,
     "bps": null,
     "bpd": null,
-    "notes": null
+    "notes": "Gym - WB 20+2/289c/170w??, S.15[150]"
   }
 ]
