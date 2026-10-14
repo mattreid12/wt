@@ -184,10 +184,10 @@
   {
     "date": "2026-10-13",
     "weight": 91.95,
-    "steps": null,
+    "steps": 15.7,
     "drinks": 0,
     "fastStart": "11:45",
-    "fastEnd": null,
+    "fastEnd": "19:00",
     "rp": 69,
     "waist": null,
     "bps": null,
