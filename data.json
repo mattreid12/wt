@@ -227,7 +227,7 @@
     "drinks": 0,
     "fastStart": "12:45",
     "fastEnd": "21:00",
-    "rp": null,
+    "rp": 70,
     "waist": null,
     "bps": null,
     "bpd": null,
