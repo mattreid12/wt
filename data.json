@@ -444,10 +444,10 @@
   {
     "date": "2026-11-02",
     "weight": 89.5,
-    "steps": null,
+    "steps": 10,
     "drinks": 0,
     "fastStart": "10:30",
-    "fastEnd": null,
+    "fastEnd": "19:00",
     "rp": 64,
     "waist": null,
     "bps": null,
