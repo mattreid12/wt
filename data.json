@@ -524,7 +524,7 @@
     "weight": 89.85,
     "steps": null,
     "drinks": 0,
-    "fastStart": null,
+    "fastStart": "17:00",
     "fastEnd": null,
     "rp": 65,
     "waist": null,
