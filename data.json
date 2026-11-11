@@ -548,7 +548,7 @@
   {
     "date": "2026-11-10",
     "weight": 89.2,
-    "steps": null,
+    "steps": 5.2,
     "drinks": 0,
     "fastStart": "11:30",
     "fastEnd": "18:15",
