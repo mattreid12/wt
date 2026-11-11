@@ -557,5 +557,18 @@
     "bps": null,
     "bpd": null,
     "notes": null
+  },
+  {
+    "date": "2026-11-11",
+    "weight": 88.8,
+    "steps": null,
+    "drinks": 0,
+    "fastStart": "12:00",
+    "fastEnd": null,
+    "rp": 63,
+    "waist": null,
+    "bps": null,
+    "bpd": null,
+    "notes": null
   }
 ]
