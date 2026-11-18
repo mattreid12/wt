@@ -639,10 +639,10 @@
   {
     "date": "2026-11-17",
     "weight": 88.5,
-    "steps": null,
+    "steps": 4.2,
     "drinks": 0,
-    "fastStart": null,
-    "fastEnd": null,
+    "fastStart": "14:15",
+    "fastEnd": "18:15",
     "rp": 61,
     "waist": null,
     "bps": null,
