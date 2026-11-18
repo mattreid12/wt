@@ -648,5 +648,18 @@
     "bps": null,
     "bpd": null,
     "notes": null
+  },
+  {
+    "date": "2026-11-18",
+    "weight": 87.55,
+    "steps": null,
+    "drinks": 0,
+    "fastStart": "11:00",
+    "fastEnd": null,
+    "rp": 60,
+    "waist": null,
+    "bps": null,
+    "bpd": null,
+    "notes": "Gym - 5m xt @ L14/65c/192w, 5xGEM[shoulder:25[WW9], chest:50[T]/45[W8], row:60[WT6], twist:*12[WWWW], pec:25[FT]], WB 5[185]+4x[3(255)+2], 15m xt @ L12/167c/147w [d164-17], S.18[150]"
   }
 ]
