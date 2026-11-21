@@ -2,23 +2,98 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Weight Tracker</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#171a21" media="(prefers-color-scheme: dark)">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Weight">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
+    color-scheme: light dark;
     --bg: #f7f8fa;
     --surface: #ffffff;
     --border: #e5e7eb;
     --text: #1f2328;
     --muted: #57606a;
     --accent: #3b82d4;
+    --accent-hover: #2563c0;
     --green: #16a34a;
     --red: #dc2626;
     --amber: #d97706;
     --pill-bg: #eff6ff;
     --pill-text: #1d4ed8;
+    --gym-bg: #f0fdf4;   --gym-text: #15803d;
+    --drink-bg: #fff7ed; --drink-text: #c2410c;
+    --today-bg: #eff6ff;
+    --danger-border: #fca5a5; --danger-hover: #fef2f2;
+
+    /* chart palette */
+    --c-grid: #e5e7eb;
+    --c-axis: #57606a;
+    --c-daily: #94a3b8;
+    --c-avg: #3b82d4;
+    --c-target: #f87171;
+    --c-trend: #8b5cf6;
+    --c-required: #64748b;
+    --c-band-above: rgba(220, 38, 38, 0.12);
+    --c-band-below: rgba(22, 163, 74, 0.14);
+    --c-steps: #6366f1;
+    --c-steps-avg: #a78bfa;
+    --c-alcohol: #fb923c;
+    --c-alcohol-bar: rgba(251, 146, 60, 0.35);
+    --c-threshold: #fbbf24;
+    --c-gym: #16a34a;
+    --c-drink: #ea580c;
+    --c-cardio: #0ea5e9;
+    --c-lift: #3b82d4;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115;
+      --surface: #171a21;
+      --border: #2a2f3a;
+      --text: #e6e8eb;
+      --muted: #9aa4b2;
+      --accent: #5b9be6;
+      --accent-hover: #7aaef0;
+      --green: #22c55e;
+      --red: #f87171;
+      --amber: #fbbf24;
+      --pill-bg: #1e2a3d;
+      --pill-text: #93c5fd;
+      --gym-bg: #13261b;   --gym-text: #4ade80;
+      --drink-bg: #2b1d10; --drink-text: #fdba74;
+      --today-bg: #16243a;
+      --danger-border: #7f1d1d; --danger-hover: #2a1414;
+
+      --c-grid: #262b35;
+      --c-axis: #9aa4b2;
+      --c-daily: #64748b;
+      --c-avg: #5b9be6;
+      --c-target: #f87171;
+      --c-trend: #a78bfa;
+      --c-required: #94a3b8;
+      --c-band-above: rgba(248, 113, 113, 0.14);
+      --c-band-below: rgba(34, 197, 94, 0.14);
+      --c-steps: #818cf8;
+      --c-steps-avg: #c4b5fd;
+      --c-alcohol: #fb923c;
+      --c-alcohol-bar: rgba(251, 146, 60, 0.30);
+      --c-threshold: #fbbf24;
+      --c-gym: #22c55e;
+      --c-drink: #fb923c;
+      --c-cardio: #38bdf8;
+      --c-lift: #5b9be6;
+    }
   }
 
   body {
@@ -29,8 +104,10 @@
     color: var(--text);
     min-height: 100vh;
   }
+  a { color: var(--accent); }
+  code { font-size: 12px; }
 
-  /* ── Layout ── */
+  /* ── Header & nav ── */
   header {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
@@ -43,7 +120,7 @@
     top: 0;
     z-index: 100;
   }
-  header h1 { font-size: 16px; font-weight: 600; }
+  header h1 { font-size: 16px; font-weight: 600; white-space: nowrap; }
   nav { display: flex; gap: 0.25rem; }
   nav button {
     background: none;
@@ -54,9 +131,15 @@
     font-size: 13px;
     color: var(--muted);
     font-weight: 500;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
   }
-  nav button.active, nav button:hover { background: var(--bg); color: var(--text); }
-  nav button.active { font-weight: 600; color: var(--accent); }
+  nav button svg { width: 15px; height: 15px; flex-shrink: 0; }
+  nav button:hover { background: var(--bg); color: var(--text); }
+  nav button.active { background: var(--bg); font-weight: 600; color: var(--accent); }
+  #sync-status { margin-left: auto; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .page { display: none; max-width: 860px; margin: 0 auto; padding: 1.5rem; }
   .page.active { display: block; }
@@ -77,14 +160,31 @@
     color: var(--muted);
     margin-bottom: 1rem;
   }
+  .card-title .aside { font-weight: 400; text-transform: none; letter-spacing: 0; font-size: 12px; margin-left: 0.5rem; }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1rem; }
+  .card-head .card-title { margin-bottom: 0; }
   .day-nav-btn {
     padding: 2px 10px;
     font-size: 16px;
     line-height: 1;
-    min-width: 32px;
+    min-width: 36px;
+    min-height: 32px;
+    justify-content: center;
   }
 
+  /* ── Headline ── */
+  .headline { display: flex; gap: 1.25rem; align-items: center; flex-wrap: wrap; }
+  .headline-main .label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+  .headline-main .big { font-size: 30px; font-weight: 700; line-height: 1.1; }
+  .headline-main .big small { font-size: 15px; font-weight: 600; color: var(--muted); }
+  .headline-points { flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 0.2rem; font-size: 13px; color: var(--muted); }
+  .headline-points strong { color: var(--text); }
+  .headline-points .good { color: var(--green); }
+  .headline-points .warn { color: var(--amber); }
+  .headline-points .bad  { color: var(--red); }
+
   /* ── Stats strip ── */
+  .stats-caption { font-size: 12px; color: var(--muted); margin: 0 0 0.4rem 0.2rem; }
   .stats-strip {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -111,11 +211,10 @@
     grid-template-columns: 1fr 1fr;
     gap: 0.75rem 1.25rem;
   }
-  .form-grid.three { grid-template-columns: 1fr 1fr 1fr; }
   .form-group { display: flex; flex-direction: column; gap: 3px; }
   .form-group.full { grid-column: 1 / -1; }
   label { font-size: 12px; font-weight: 600; color: var(--muted); }
-  input[type="text"], input[type="number"], input[type="date"], input[type="time"], textarea {
+  input[type="text"], input[type="number"], input[type="date"], input[type="password"], select, textarea {
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 0.45rem 0.7rem;
@@ -125,7 +224,7 @@
     background: var(--surface);
     width: 100%;
   }
-  input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); }
   textarea { resize: vertical; min-height: 64px; }
 
   .section-sep {
@@ -139,7 +238,24 @@
     border-top: 1px solid var(--border);
     margin-top: 0.25rem;
   }
-  .section-sep:first-child { border-top: none; padding-top: 0; }
+
+  details.more { grid-column: 1 / -1; border-top: 1px solid var(--border); margin-top: 0.25rem; }
+  details.more summary {
+    cursor: pointer;
+    list-style: none;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    padding: 0.75rem 0 0.4rem;
+    user-select: none;
+  }
+  details.more summary::-webkit-details-marker { display: none; }
+  details.more summary::before { content: '▸'; display: inline-block; width: 1em; transition: transform 0.15s; }
+  details.more[open] summary::before { transform: rotate(90deg); }
+  details.more summary .aside { font-weight: 400; text-transform: none; letter-spacing: 0; }
+  details.more .form-grid { padding-bottom: 0.25rem; }
 
   .hint { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
@@ -155,22 +271,30 @@
     font-weight: 600;
     cursor: pointer;
     font-family: inherit;
+    color: var(--text);
+    white-space: nowrap;
   }
   .btn-primary { background: var(--accent); color: #fff; }
-  .btn-primary:hover { background: #2563c0; }
+  .btn-primary:hover { background: var(--accent-hover); }
   .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
   .btn-ghost:hover { background: var(--bg); }
-  .btn-danger { background: transparent; border: 1px solid #fca5a5; color: var(--red); }
-  .btn-danger:hover { background: #fef2f2; }
+  .btn-danger { background: transparent; border: 1px solid var(--danger-border); color: var(--red); }
+  .btn-danger:hover { background: var(--danger-hover); }
+  .btn-sm { font-size: 12px; padding: 0.3rem 0.75rem; }
 
-  .form-actions { display: flex; gap: 0.75rem; margin-top: 1.25rem; align-items: center; }
-  #save-status { font-size: 12px; color: var(--green); font-weight: 600; }
+  .form-actions { display: flex; gap: 0.75rem; margin-top: 1.25rem; align-items: center; flex-wrap: wrap; }
+  .status { font-size: 12px; font-weight: 600; color: var(--muted); }
+  .status.good { color: var(--green); }
+  .status.bad  { color: var(--red); }
+  .toggle { display: inline-flex; align-items: center; gap: 0.4rem; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; margin-left: auto; }
+  .toggle input { width: 16px; height: 16px; accent-color: var(--accent); }
 
   /* ── Fast display ── */
   .fast-display {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.5rem;
     padding: 0.5rem 0.75rem;
     background: var(--bg);
     border-radius: 6px;
@@ -180,16 +304,36 @@
     grid-column: 1 / -1;
   }
   .fast-display strong { color: var(--text); }
+  .fast-display .right { margin-left: auto; font-size: 12px; }
 
-  /* ── Chart ── */
-  #chart-canvas {
-    width: 100%;
-    height: 260px;
-    display: block;
+  /* ── Charts ── */
+  .chart-wrap { position: relative; }
+  .chart-wrap canvas { width: 100%; display: block; touch-action: pan-y; cursor: crosshair; }
+  #chart-canvas { height: 280px; }
+  .h180 { height: 180px; }
+  .h160 { height: 160px; }
+  .h150 { height: 150px; }
+  .chart-tip {
+    position: absolute;
+    top: 6px;
+    display: none;
+    pointer-events: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.4rem 0.6rem;
+    font-size: 12px;
+    line-height: 1.5;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+    white-space: nowrap;
+    z-index: 5;
   }
+  .chart-tip b { font-weight: 600; }
+  .chart-tip .row { display: flex; justify-content: space-between; gap: 1rem; }
+  .chart-tip .row span:first-child { color: var(--muted); }
   .chart-legend {
     display: flex;
-    gap: 1.25rem;
+    gap: 0.4rem 1.1rem;
     flex-wrap: wrap;
     margin-top: 0.75rem;
     font-size: 12px;
@@ -197,19 +341,44 @@
   }
   .legend-item { display: flex; align-items: center; gap: 0.4rem; }
   .legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-  .chart-controls { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
-  .chart-controls button {
+  .legend-line { width: 18px; height: 0; border-top: 2px solid; flex-shrink: 0; }
+  .legend-line.dashed { border-top-style: dashed; }
+  .legend-box { width: 14px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .seg button {
     padding: 0.3rem 0.7rem;
-    border-radius: 5px;
-    border: 1px solid var(--border);
+    border: none;
+    border-right: 1px solid var(--border);
     background: var(--surface);
     font-size: 12px;
+    font-family: inherit;
     cursor: pointer;
     color: var(--muted);
   }
-  .chart-controls button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .seg button:last-child { border-right: none; }
+  .seg button.active { background: var(--accent); color: #fff; }
+  .seg-label { font-size: 12px; color: var(--muted); margin-right: 0.35rem; }
+  .chart-controls { display: flex; gap: 0.5rem 1rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+  .chart-note { font-size: 11px; color: var(--muted); margin-top: 6px; }
+  .chips { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+  .chip {
+    font-size: 12px;
+    padding: 0.2rem 0.65rem;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .chip.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .sub-title { font-size: 12px; font-weight: 600; color: var(--muted); margin: 1.1rem 0 0.4rem; }
+  .mini-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 0.5rem; margin-bottom: 0.5rem; }
+  .mini-stats div { background: var(--bg); border-radius: 8px; padding: 0.5rem 0.7rem; }
+  .mini-stats .v { font-size: 18px; font-weight: 700; }
+  .mini-stats .l { font-size: 11px; color: var(--muted); }
 
-  /* ── History table ── */
+  /* ── Tables ── */
   .history-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .history-table th {
     text-align: left;
@@ -228,8 +397,9 @@
     vertical-align: top;
   }
   .history-table tr:last-child td { border-bottom: none; }
-  .history-table tr:hover td { background: var(--bg); }
-  .history-table tr.today-row td { background: #eff6ff; }
+  .history-table tbody tr:hover td { background: var(--bg); }
+  .history-table tr.today-row td { background: var(--today-bg); }
+  .history-table td.num { white-space: nowrap; }
 
   .tag {
     display: inline-block;
@@ -240,8 +410,8 @@
     background: var(--pill-bg);
     color: var(--pill-text);
   }
-  .tag.gym { background: #f0fdf4; color: #16a34a; }
-  .tag.drink { background: #fff7ed; color: #c2410c; }
+  .tag.gym { background: var(--gym-bg); color: var(--gym-text); }
+  .tag.drink { background: var(--drink-bg); color: var(--drink-text); }
 
   .delta { font-size: 11px; font-weight: 600; }
   .delta.up { color: var(--red); }
@@ -258,18 +428,78 @@
     font-size: 13px;
     padding: 2px 6px;
     border-radius: 4px;
+    font-family: inherit;
   }
   .edit-btn:hover { background: var(--bg); color: var(--accent); }
+  .edit-btn.del:hover { color: var(--red); }
+
+  .history-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .history-toolbar .tools { display: flex; gap: 0.5rem; }
+  #history-search { width: 180px; padding: 0.3rem 0.6rem; font-size: 13px; }
+
+  /* History cards (mobile) */
+  .history-cards { display: none; }
+  .h-card { padding: 0.8rem 1rem; border-bottom: 1px solid var(--border); }
+  .h-card:last-child { border-bottom: none; }
+  .h-card.today { background: var(--today-bg); }
+  .h-card-top { display: flex; align-items: baseline; gap: 0.5rem; flex-wrap: wrap; }
+  .h-card-top .date { font-weight: 600; }
+  .h-card-top .wt { margin-left: auto; font-size: 18px; font-weight: 700; }
+  .h-card-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.15rem 0.75rem; margin-top: 0.35rem; font-size: 12px; }
+  .h-card-grid span { color: var(--muted); }
+  .h-card-notes { margin-top: 0.35rem; font-size: 12px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .h-card-actions { margin-top: 0.35rem; display: flex; gap: 0.25rem; justify-content: flex-end; }
 
   /* ── Empty state ── */
   .empty { text-align: center; padding: 3rem 1rem; color: var(--muted); }
   .empty p { margin-top: 0.5rem; font-size: 13px; }
 
-  /* ── Responsive ── */
-  @media (max-width: 560px) {
-    .form-grid { grid-template-columns: 1fr; }
-    .form-grid.three { grid-template-columns: 1fr 1fr; }
-    .stats-strip { grid-template-columns: repeat(3, 1fr); }
+  /* ── Small screens ── */
+  @media (max-width: 640px) {
+    header { padding: 0 1rem; height: 48px; gap: 1rem; }
+    nav {
+      position: fixed;
+      left: 0; right: 0; bottom: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      justify-content: space-around;
+      gap: 0;
+      padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
+      z-index: 100;
+    }
+    nav button {
+      flex: 1;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 11px;
+      padding: 6px 0;
+      min-height: 48px;
+      justify-content: center;
+    }
+    nav button svg { width: 20px; height: 20px; }
+    nav button.active { background: none; }
+    body { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
+    .page { padding: 1rem 0.75rem; }
+    .card { padding: 1rem; }
+
+    /* bigger touch targets; 16px stops iOS zooming into fields */
+    input[type="text"], input[type="number"], input[type="date"], input[type="password"], select, textarea {
+      font-size: 16px;
+      min-height: 44px;
+    }
+    #history-search { min-height: 36px; font-size: 16px; width: 100%; }
+    .history-toolbar .tools { width: 100%; }
+    .btn { min-height: 40px; }
+    .form-grid.collapse { grid-template-columns: 1fr; }
+    .stats-strip { grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+    .stat-box { padding: 0.6rem 0.4rem; }
+    .stat-box .value { font-size: 19px; }
+    .headline-main .big { font-size: 26px; }
+    .toggle { margin-left: 0; }
+
+    .history-table.entries { display: none; }
+    .history-table th, .history-table td { padding: 0.4rem 0.45rem; }
+    .history-cards { display: block; }
   }
 </style>
 </head>
@@ -278,150 +508,208 @@
 <header>
   <h1>⚖️ Weight Tracker</h1>
   <nav>
-    <button class="active" onclick="showPage('today')">Today</button>
-    <button onclick="showPage('chart')">Chart</button>
-    <button onclick="showPage('history')">History</button>
-    <button onclick="showPage('targets')">Targets</button>
-    <button onclick="showPage('settings')">⚙ Settings</button>
+    <button class="active" data-page="today">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      <span>Today</span>
+    </button>
+    <button data-page="chart">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg>
+      <span>Charts</span>
+    </button>
+    <button data-page="history">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+      <span>History</span>
+    </button>
+    <button data-page="targets">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg>
+      <span>Targets</span>
+    </button>
+    <button data-page="settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
+      <span>Settings</span>
+    </button>
   </nav>
-  <div style="margin-left:auto;display:flex;align-items:center;gap:0.5rem;">
-    <span id="sync-status" style="font-size:12px;color:var(--muted);"></span>
-  </div>
+  <span id="sync-status"></span>
 </header>
 
 <!-- ═══════════════ TODAY PAGE ═══════════════ -->
 <div id="page-today" class="page active">
 
-  <div class="stats-strip" id="stats-strip">
-    <!-- populated by JS -->
+  <div class="card" id="headline-card" style="display:none;">
+    <div class="headline" id="headline"></div>
   </div>
+
+  <div class="stats-caption" id="stats-caption"></div>
+  <div class="stats-strip" id="stats-strip"></div>
 
   <div class="card">
     <div class="card-title" style="display:flex;align-items:center;gap:8px;">
-      <button class="btn btn-ghost day-nav-btn" id="btn-prev-day" onclick="navigateDay(-1)" title="Previous day">&#8592;</button>
+      <button class="btn btn-ghost day-nav-btn" id="btn-prev-day" title="Previous day">&#8592;</button>
       <span id="form-heading" style="flex:1;text-align:center;">Log today</span>
-      <button class="btn btn-ghost day-nav-btn" id="btn-next-day" onclick="navigateDay(1)" title="Next day">&#8594;</button>
+      <button class="btn btn-ghost day-nav-btn" id="btn-next-day" title="Next day">&#8594;</button>
     </div>
 
-    <div class="form-grid" id="entry-form">
+    <div id="entry-form">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="f-date">Date</label>
+          <input type="date" id="f-date">
+        </div>
+        <div class="form-group">
+          <label for="f-weight">Weight (kg)</label>
+          <input type="number" id="f-weight" step="0.05" inputmode="decimal" placeholder="e.g. 83.5">
+        </div>
+        <div class="form-group">
+          <label for="f-steps">Steps (thousands)</label>
+          <input type="number" id="f-steps" step="0.1" inputmode="decimal" placeholder="e.g. 8.5">
+        </div>
+        <div class="form-group">
+          <label for="f-drinks">Drinks</label>
+          <input type="number" id="f-drinks" step="1" min="0" inputmode="numeric" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label for="f-fast-start">First meal</label>
+          <select id="f-fast-start"><option value="">— not set —</option></select>
+        </div>
+        <div class="form-group">
+          <label for="f-fast-end">Last meal</label>
+          <select id="f-fast-end"><option value="">— not set —</option></select>
+        </div>
 
-      <div class="section-sep">Core</div>
+        <div class="fast-display" id="fast-display">
+          ⏱ Fast: <strong id="fast-duration-text">—</strong>
+          <span id="fast-since-text"></span>
+          <span class="right" id="fast-window-text"></span>
+        </div>
 
-      <div class="form-group">
-        <label for="f-date">Date</label>
-        <input type="date" id="f-date">
-      </div>
-      <div class="form-group">
-        <label for="f-weight">Weight (kg)</label>
-        <input type="number" id="f-weight" step="0.05" placeholder="e.g. 83.5">
-      </div>
-      <div class="form-group">
-        <label for="f-steps">Steps (thousands)</label>
-        <input type="number" id="f-steps" step="0.1" placeholder="e.g. 8.5">
-      </div>
-      <div class="form-group">
-        <label for="f-drinks">Drinks today</label>
-        <input type="number" id="f-drinks" step="1" min="0" placeholder="0">
-      </div>
+        <div class="form-group full">
+          <label for="f-notes">Notes (gym workout, events, etc.)</label>
+          <textarea id="f-notes" placeholder="e.g. Gym - 5m xt wu, 5xGEM [shoulder:30[WT9], chest:55[WW8]…]"></textarea>
+        </div>
 
-      <div class="section-sep">Intermittent Fasting</div>
-
-      <div class="form-group">
-        <label for="f-fast-start">First meal (eating window start)</label>
-        <select id="f-fast-start">
-          <option value="">— not set —</option>
-        </select>
+        <details class="more" id="vitals-details">
+          <summary>Vitals <span class="aside">(optional)</span></summary>
+          <div class="form-grid collapse">
+            <div class="form-group">
+              <label for="f-rp">Resting pulse (bpm)</label>
+              <input type="number" id="f-rp" step="1" inputmode="numeric" placeholder="e.g. 58">
+            </div>
+            <div class="form-group">
+              <label for="f-waist">Waist (cm)</label>
+              <input type="number" id="f-waist" step="0.5" inputmode="decimal" placeholder="e.g. 91">
+            </div>
+            <div class="form-group">
+              <label for="f-bps">BP systolic</label>
+              <input type="number" id="f-bps" step="1" inputmode="numeric" placeholder="e.g. 120">
+            </div>
+            <div class="form-group">
+              <label for="f-bpd">BP diastolic</label>
+              <input type="number" id="f-bpd" step="1" inputmode="numeric" placeholder="e.g. 78">
+            </div>
+          </div>
+        </details>
       </div>
-      <div class="form-group">
-        <label for="f-fast-end">Last meal (eating window end)</label>
-        <select id="f-fast-end">
-          <option value="">— not set —</option>
-        </select>
-      </div>
-
-      <div class="fast-display" id="fast-display">
-        ⏱ Fast duration: <strong id="fast-duration-text">—</strong>
-        <span id="fast-window-text" style="margin-left:auto;color:var(--muted);font-size:12px;"></span>
-      </div>
-
-      <div class="section-sep">Vitals <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
-
-      <div class="form-group">
-        <label for="f-rp">Resting pulse (bpm)</label>
-        <input type="number" id="f-rp" step="1" placeholder="e.g. 58">
-      </div>
-      <div class="form-group">
-        <label for="f-waist">Waist (cm)</label>
-        <input type="number" id="f-waist" step="0.5" placeholder="e.g. 91">
-      </div>
-      <div class="form-group">
-        <label for="f-bps">BP systolic</label>
-        <input type="number" id="f-bps" step="1" placeholder="e.g. 120">
-      </div>
-      <div class="form-group">
-        <label for="f-bpd">BP diastolic</label>
-        <input type="number" id="f-bpd" step="1" placeholder="e.g. 78">
-      </div>
-
-      <div class="section-sep">Gym / Notes <span style="font-weight:400;text-transform:none;letter-spacing:0">(optional)</span></div>
-
-      <div class="form-group full">
-        <label for="f-notes">Notes (gym workout, events, etc.)</label>
-        <textarea id="f-notes" placeholder="e.g. Gym - 5m xt wu, 5xGEM [shoulder:30[WT9], chest:55[WW8]…]"></textarea>
-      </div>
-
     </div>
 
     <div class="form-actions">
-      <button class="btn btn-primary" onclick="saveEntry()">Save entry</button>
-      <button class="btn btn-ghost" onclick="clearForm()">Clear</button>
-      <span id="save-status"></span>
+      <button class="btn btn-primary" id="btn-save">Save entry</button>
+      <button class="btn btn-ghost" id="btn-clear">Clear</button>
+      <button class="btn btn-danger" id="btn-delete" style="display:none;">Delete</button>
+      <span id="save-status" class="status"></span>
+      <label class="toggle" title="Save automatically a moment after you stop typing">
+        <input type="checkbox" id="autosave-toggle"> Auto-save
+      </label>
     </div>
   </div>
 </div>
 
 <!-- ═══════════════ CHART PAGE ═══════════════ -->
 <div id="page-chart" class="page">
+  <div class="chart-controls">
+    <div class="seg" id="range-seg">
+      <button data-range="30">30d</button>
+      <button data-range="60">60d</button>
+      <button data-range="90">90d</button>
+      <button data-range="0" class="active">All</button>
+    </div>
+    <div style="display:flex;align-items:center;">
+      <span class="seg-label">Trend from last</span>
+      <div class="seg" id="trend-seg">
+        <button data-trend="14">14d</button>
+        <button data-trend="28">28d</button>
+      </div>
+    </div>
+  </div>
+
   <div class="card">
     <div class="card-title">Weight trend</div>
-    <div class="chart-controls" id="chart-range-controls">
-      <button onclick="setChartRange(30)" id="cr-30">30 days</button>
-      <button onclick="setChartRange(60)" id="cr-60">60 days</button>
-      <button onclick="setChartRange(90)" id="cr-90">90 days</button>
-      <button onclick="setChartRange(0)" id="cr-all" class="active">All</button>
-    </div>
-    <canvas id="chart-canvas"></canvas>
+    <div class="chart-wrap"><canvas id="chart-canvas"></canvas><div class="chart-tip"></div></div>
     <div class="chart-legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#94a3b8"></div> Daily weight</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#3b82d4"></div> 7-day weighted avg</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#3b82d4;opacity:0.5;border-radius:2px;height:2px;width:18px"></div> Projected trajectory</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#f87171;border-radius:2px;height:2px;width:18px"></div> Target</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--c-daily)"></div> Daily weight</div>
+      <div class="legend-item"><div class="legend-line" style="border-color:var(--c-avg);border-top-width:3px"></div> 7-day weighted avg</div>
+      <div class="legend-item"><div class="legend-line dashed" style="border-color:var(--c-target)"></div> Plan target</div>
+      <div class="legend-item"><div class="legend-line dashed" style="border-color:var(--c-trend)"></div> <span id="legend-trend">Trend projection</span></div>
+      <div class="legend-item"><div class="legend-line dashed" style="border-color:var(--c-required)"></div> Required pace</div>
+      <div class="legend-item"><div class="legend-box" style="background:var(--c-band-above)"></div> Above plan</div>
+      <div class="legend-item"><div class="legend-box" style="background:var(--c-band-below)"></div> Below plan</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--c-gym)"></div> Gym day</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--c-drink)"></div> Drinks</div>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-title">Steps trend</div>
-    <canvas id="steps-canvas" style="width:100%;height:180px;display:block;"></canvas>
+    <div class="card-title">Steps</div>
+    <div class="chart-wrap"><canvas id="steps-canvas" class="h180"></canvas><div class="chart-tip"></div></div>
+    <div class="chart-legend">
+      <div class="legend-item"><div class="legend-box" style="background:var(--c-steps)"></div> Daily steps (k)</div>
+      <div class="legend-item"><div class="legend-line" style="border-color:var(--c-steps-avg)"></div> 7-day avg</div>
+      <div class="legend-item"><div class="legend-line dashed" style="border-color:var(--c-threshold)"></div> <span id="steps-target-label">Target</span></div>
+    </div>
   </div>
 
   <div class="card">
-    <div class="card-title">Alcohol (weekly units, rolling 7-day)</div>
-    <canvas id="alcohol-canvas" style="width:100%;height:160px;display:block;"></canvas>
-    <div style="font-size:11px;color:var(--muted);margin-top:6px;" id="alcohol-target-label">Target: ≤21 units/week. Each drink counted as 2 units.</div>
+    <div class="card-title">Alcohol <span class="aside">rolling 7-day units</span></div>
+    <div class="chart-wrap"><canvas id="alcohol-canvas" class="h160"></canvas><div class="chart-tip"></div></div>
+    <div class="chart-note" id="alcohol-target-label">Target: ≤21 units/week. Each drink counted as 2 units.</div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Gym <span class="aside">parsed from notes starting “Gym”</span></div>
+    <div class="mini-stats" id="gym-stats"></div>
+    <div class="sub-title">Sessions per week</div>
+    <div class="chart-wrap"><canvas id="gym-sessions-canvas" class="h150"></canvas><div class="chart-tip"></div></div>
+    <div class="sub-title">Cardio minutes per week</div>
+    <div class="chart-wrap"><canvas id="gym-cardio-canvas" class="h150"></canvas><div class="chart-tip"></div></div>
+    <div class="sub-title">Top working weight by exercise</div>
+    <div class="chips" id="lift-chips"></div>
+    <div class="chart-wrap"><canvas id="gym-lift-canvas" class="h180"></canvas><div class="chart-tip"></div></div>
+    <div class="chart-note">Cardio counts segments with explicit minutes (e.g. “15m xt”, “30m tm”, “20m WB”). Weights are the heaviest number logged per exercise in the GEM block (s/r/c/p/l are read as shoulder/row/chest/pec/lat).</div>
   </div>
 </div>
 
 <!-- ═══════════════ HISTORY PAGE ═══════════════ -->
 <div id="page-history" class="page">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+
+  <div class="card" style="padding:0;overflow:auto;">
+    <div class="card-title" style="padding:1rem 1.25rem 0;margin-bottom:0.5rem;">Weekly summary <span class="aside">weeks start Monday</span></div>
+    <table class="history-table" id="weekly-table">
+      <thead>
+        <tr><th>Week</th><th>Avg wt</th><th>Δ wk</th><th>Steps</th><th>Units</th><th>Gym</th><th>Fast</th><th>Days</th></tr>
+      </thead>
+      <tbody id="weekly-body"></tbody>
+    </table>
+    <div style="padding:0.4rem 1.25rem 0.8rem;"><button class="edit-btn" id="btn-weeks-toggle" style="display:none;"></button></div>
+  </div>
+
+  <div class="history-toolbar">
     <div style="font-size:13px;color:var(--muted);" id="history-count"></div>
-    <div style="display:flex;gap:0.5rem;">
-      <input type="text" id="history-search" placeholder="Search notes…" style="width:180px;padding:0.3rem 0.6rem;font-size:13px;" oninput="renderHistory()">
-      <button class="btn btn-ghost" onclick="exportCSV()" style="font-size:12px;padding:0.3rem 0.75rem;">Export CSV</button>
+    <div class="tools">
+      <input type="text" id="history-search" placeholder="Search notes or dates…">
+      <button class="btn btn-ghost btn-sm" id="btn-export-history">Export CSV</button>
     </div>
   </div>
   <div class="card" style="padding:0;overflow:auto;">
-    <table class="history-table" id="history-table">
+    <table class="history-table entries" id="history-table">
       <thead>
         <tr>
           <th>Date</th>
@@ -440,6 +728,7 @@
       </thead>
       <tbody id="history-body"></tbody>
     </table>
+    <div class="history-cards" id="history-cards"></div>
     <div id="history-empty" class="empty" style="display:none;">
       <strong>No entries yet</strong>
       <p>Log your first day on the Today tab.</p>
@@ -452,7 +741,7 @@
 
   <div class="card">
     <div class="card-title">Weight target milestones
-      <span style="font-weight:400;text-transform:none;letter-spacing:0;font-size:12px;color:var(--muted);margin-left:0.5rem;">weekly plan from the Rnd sheet — edit to adjust</span>
+      <span class="aside">weekly plan from the Rnd sheet — edit to adjust</span>
     </div>
     <div style="overflow-x:auto;">
       <table class="history-table" id="milestones-table" style="font-size:13px;">
@@ -461,36 +750,36 @@
       </table>
     </div>
     <div class="form-actions" style="margin-top:0.75rem;">
-      <button class="btn btn-ghost" onclick="addMilestone()">+ Add row</button>
-      <button class="btn btn-primary" onclick="saveTargets()">Save targets</button>
-      <span id="targets-status"></span>
+      <button class="btn btn-ghost" id="btn-add-milestone">+ Add row</button>
+      <button class="btn btn-primary" data-save-targets>Save targets</button>
+      <span class="status" data-targets-status></span>
     </div>
     <div id="target-summary" style="margin-top:1rem;padding:0.75rem 1rem;background:var(--bg);border-radius:6px;border:1px solid var(--border);font-size:13px;color:var(--muted);line-height:1.8;"></div>
   </div>
 
   <div class="card">
     <div class="card-title">Daily targets</div>
-    <div class="form-grid">
+    <div class="form-grid collapse">
       <div class="form-group">
         <label for="t-steps">Steps target (thousands/day)</label>
-        <input type="number" id="t-steps" step="0.5" placeholder="10">
+        <input type="number" id="t-steps" step="0.5" inputmode="decimal" placeholder="10">
       </div>
       <div class="form-group">
         <label for="t-units">Max weekly alcohol units</label>
-        <input type="number" id="t-units" step="1" placeholder="21">
+        <input type="number" id="t-units" step="1" inputmode="numeric" placeholder="21">
       </div>
       <div class="form-group">
         <label for="t-fast">Minimum fast duration (hours)</label>
-        <input type="number" id="t-fast" step="0.5" placeholder="16">
+        <input type="number" id="t-fast" step="0.5" inputmode="decimal" placeholder="16">
       </div>
       <div class="form-group">
         <label for="t-rp">Resting pulse target (bpm)</label>
-        <input type="number" id="t-rp" step="1" placeholder="e.g. 55">
+        <input type="number" id="t-rp" step="1" inputmode="numeric" placeholder="e.g. 55">
       </div>
     </div>
     <div class="form-actions">
-      <button class="btn btn-primary" onclick="saveTargets()">Save targets</button>
-      <span id="targets-status2"></span>
+      <button class="btn btn-primary" data-save-targets>Save targets</button>
+      <span class="status" data-targets-status></span>
     </div>
   </div>
 
@@ -502,33 +791,35 @@
   <div class="card">
     <div class="card-title">GitHub storage</div>
     <p style="font-size:13px;color:var(--muted);margin-bottom:1rem;line-height:1.7;">
-      Your data is stored as JSON files in a GitHub repository and served via GitHub Pages.
-      Create a <strong>Personal Access Token</strong> with <code>Contents: read &amp; write</code> scope
-      at <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a>,
-      then enter the details below. These settings are saved locally in this browser only.
+      Your data is stored as JSON files (<code>data.json</code>, <code>targets.json</code>) in a GitHub repository,
+      read and written through the GitHub API. Create a fine-grained <strong>Personal Access Token</strong> limited to that one
+      repository with <code>Contents: read &amp; write</code> at
+      <a href="https://github.com/settings/personal-access-tokens" target="_blank" rel="noopener">github.com/settings/personal-access-tokens</a>,
+      then enter the details below. These settings are saved in this browser only.
+      The data repo can be private even if this page is served from a public GitHub Pages site.
     </p>
-    <div class="form-grid">
+    <div class="form-grid collapse">
       <div class="form-group">
         <label for="s-owner">GitHub username / org</label>
-        <input type="text" id="s-owner" placeholder="e.g. mattreid">
+        <input type="text" id="s-owner" placeholder="e.g. mattreid" autocapitalize="off" autocorrect="off">
       </div>
       <div class="form-group">
         <label for="s-repo">Repository name</label>
-        <input type="text" id="s-repo" placeholder="e.g. wt-tracker">
+        <input type="text" id="s-repo" placeholder="e.g. wt" autocapitalize="off" autocorrect="off">
       </div>
       <div class="form-group">
         <label for="s-branch">Branch</label>
-        <input type="text" id="s-branch" placeholder="main">
+        <input type="text" id="s-branch" placeholder="main" autocapitalize="off" autocorrect="off">
       </div>
       <div class="form-group">
         <label for="s-pat">Personal Access Token</label>
-        <input type="password" id="s-pat" placeholder="ghp_…" autocomplete="off">
+        <input type="password" id="s-pat" placeholder="github_pat_…" autocomplete="off">
       </div>
     </div>
     <div class="form-actions">
-      <button class="btn btn-primary" onclick="saveSettings()">Save &amp; connect</button>
-      <button class="btn btn-ghost" onclick="testConnection()">Test connection</button>
-      <span id="settings-status"></span>
+      <button class="btn btn-primary" id="btn-save-settings">Save &amp; connect</button>
+      <button class="btn btn-ghost" id="btn-test-connection">Test connection</button>
+      <span id="settings-status" class="status"></span>
     </div>
   </div>
 
@@ -538,15 +829,56 @@
       Configure GitHub above to enable cloud sync.
     </div>
     <div class="form-actions" style="margin-top:0.75rem;">
-      <button class="btn btn-ghost" onclick="forcePull()" id="btn-pull">↓ Pull from GitHub</button>
-      <button class="btn btn-ghost" onclick="exportCSV()">Export CSV</button>
-      <span id="sync-card-status"></span>
+      <button class="btn btn-ghost" id="btn-pull">↓ Pull from GitHub</button>
+      <button class="btn btn-ghost" id="btn-export-settings">Export CSV</button>
+      <span id="sync-card-status" class="status"></span>
     </div>
   </div>
 
 </div>
 
 <script>
+'use strict';
+// ═══════════════════════════════════════════════════
+//  DATES — all arithmetic on whole local days, never via toISOString()
+//  (toISOString is UTC, which is the previous day during BST)
+// ═══════════════════════════════════════════════════
+
+const pad2 = n => String(n).padStart(2, '0');
+function isoLocal(d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+function todayStr() { return isoLocal(new Date()); }
+// Day number: whole days since 1970-01-01 for a YYYY-MM-DD string (DST-proof)
+function dayNum(s) { const [y, m, d] = s.split('-').map(Number); return Math.round(Date.UTC(y, m - 1, d) / 86400000); }
+function fromDayNum(n) {
+  const d = new Date(n * 86400000);
+  return d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1) + '-' + pad2(d.getUTCDate());
+}
+function addDays(s, n) { return fromDayNum(dayNum(s) + n); }
+// Monday on or before day number x (1970-01-05, day 4, was a Monday)
+function weekStart(x) { return x - ((((x - 4) % 7) + 7) % 7); }
+
+function fmtDate(d) {
+  if (!d) return '';
+  const [y, m, dd] = d.split('-').map(Number);
+  return new Date(y, m - 1, dd).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+function fmtShort(d) {
+  const [y, m, dd] = d.split('-').map(Number);
+  return new Date(y, m - 1, dd).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+function fmtHours(h) {
+  if (h == null) return '—';
+  const hh = Math.floor(h + 1e-9), mm = Math.round((h - hh) * 60);
+  return mm ? `${hh}h ${pad2(mm)}m` : `${hh}h`;
+}
+const fx = (v, d = 1) => v == null || !isFinite(v) ? '—' : v.toFixed(d);
+const signed = (v, d = 1) => v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v).toFixed(d);
+
+function escHtml(s) {
+  return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function escAttr(s) { return escHtml(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+
 // ═══════════════════════════════════════════════════
 //  DATA LAYER
 // ═══════════════════════════════════════════════════
@@ -554,9 +886,10 @@
 const STORAGE_KEY   = 'wt26_entries';
 const TARGETS_KEY   = 'wt26_targets';
 const SETTINGS_KEY  = 'wt26_settings';
+const PENDING_KEY   = 'wt26_pending';    // edits not yet confirmed by GitHub
+const PREFS_KEY     = 'wt26_prefs';      // UI prefs: autosave, trend window, lift
 
 // Weekly milestone target weights from the Rnd sheet (col A = date, col C = target)
-// Covers the current plan period from 29 Sep 2026 onwards
 const DEFAULT_MILESTONES = [
   ['2026-09-29', 94  ],
   ['2026-10-06', 92  ],
@@ -583,23 +916,31 @@ const DEFAULT_TARGETS = {
   rp:         null,
 };
 
-// ── Settings (always localStorage — credentials stay local) ──
+const UNITS_PER_DRINK = 2;
 
-function loadSettings() {
-  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}'); } catch { return {}; }
+function readJSON(key, fallback) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
 }
-function persistSettings(s) {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(s));
+function writeJSON(key, v) {
+  try { localStorage.setItem(key, JSON.stringify(v)); } catch (e) { console.warn('localStorage write failed', e); }
 }
-function isConfigured() {
-  const s = loadSettings();
-  return !!(s.pat && s.owner && s.repo);
-}
+
+// ── Prefs ──
+function loadPrefs() { return { autosave: false, trend: 28, lift: null, ...readJSON(PREFS_KEY, {}) }; }
+function setPref(k, v) { const p = loadPrefs(); p[k] = v; writeJSON(PREFS_KEY, p); }
+
+// ── Settings (always localStorage — credentials stay local) ──
+function loadSettings() { return readJSON(SETTINGS_KEY, {}); }
+function persistSettings(s) { writeJSON(SETTINGS_KEY, s); }
+function isConfigured() { const s = loadSettings(); return !!(s.pat && s.owner && s.repo); }
 
 // ── In-memory cache (authoritative while page is open) ──
-let _entries  = null;   // Array
-let _targets  = null;   // Object
-let _sha      = {};     // { 'data.json': sha, 'targets.json': sha }
+let _entries = null;   // Array, sorted by date
+let _targets = null;   // Object
+let _sha     = {};     // { 'data.json': sha, 'targets.json': sha }
+let _lastPull = 0;
+
+class ConflictError extends Error {}
 
 // ── GitHub Contents API helpers ──
 
@@ -612,63 +953,159 @@ function ghHeaders() {
   };
 }
 
-function ghUrl(file) {
+function ghUrl(file, withRef = true) {
   const { owner, repo, branch } = loadSettings();
-  return `https://api.github.com/repos/${owner}/${repo}/contents/${file}?ref=${branch || 'main'}`;
+  const base = `https://api.github.com/repos/${owner}/${repo}/contents/${file}`;
+  return withRef ? `${base}?ref=${encodeURIComponent(branch || 'main')}` : base;
+}
+
+function b64ToUtf8(b64) {
+  const bin = atob(b64.replace(/\n/g, ''));
+  return new TextDecoder().decode(Uint8Array.from(bin, c => c.charCodeAt(0)));
+}
+function utf8ToB64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
 }
 
 async function ghGet(file) {
-  const res = await fetch(ghUrl(file), { headers: ghHeaders() });
+  // no-store: GitHub's API is cacheable for 60s, and a stale copy gives a stale sha → conflicts
+  const res = await fetch(ghUrl(file), { headers: ghHeaders(), cache: 'no-store' });
   if (!res.ok) throw new Error(`GitHub GET ${file}: ${res.status} ${res.statusText}`);
   const json = await res.json();
   _sha[file] = json.sha;
-  return JSON.parse(atob(json.content.replace(/\n/g, '')));
+  return JSON.parse(b64ToUtf8(json.content));
 }
 
 async function ghPut(file, data) {
   const { branch } = loadSettings();
   const body = {
     message: `wt-tracker: update ${file}`,
-    content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
+    content: utf8ToB64(JSON.stringify(data, null, 2)),
     branch:  branch || 'main',
-    sha:     _sha[file],
   };
-  const res = await fetch(ghUrl(file), {
+  if (_sha[file]) body.sha = _sha[file];
+  const res = await fetch(ghUrl(file, false), {
     method: 'PUT',
     headers: { ...ghHeaders(), 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
+    // 409 = sha out of date (saved elsewhere since we loaded); 422 = sha missing
+    if (res.status === 409 || res.status === 422) throw new ConflictError(err.message || 'conflict');
     throw new Error(`GitHub PUT ${file}: ${res.status} — ${err.message || res.statusText}`);
   }
   const json = await res.json();
-  _sha[file] = json.content.sha;  // update sha for next write
+  _sha[file] = json.content.sha;
 }
 
-// ── Public data API (called by the rest of the app) ──
+// ── Entries ──
 
-function loadTargets() {
-  if (_targets) return _targets;
-  // Fall back to localStorage cache while GitHub loads
+const byDate = (a, b) => a.date.localeCompare(b.date);
+
+function loadEntries() {
+  if (!_entries) _entries = readJSON(STORAGE_KEY, []).sort(byDate);
+  return _entries;
+}
+function setEntries(list) {
+  _entries = [...list].sort(byDate);
+  writeJSON(STORAGE_KEY, _entries);
+}
+function findEntry(date) { return loadEntries().find(e => e.date === date) || null; }
+
+// An op is { type: 'upsert', entry } or { type: 'delete', date }
+function opDate(op) { return op.type === 'upsert' ? op.entry.date : op.date; }
+function applyOp(entries, op) {
+  const d = opDate(op);
+  const out = entries.filter(e => e.date !== d);
+  if (op.type === 'upsert') out.push(op.entry);
+  return out.sort(byDate);
+}
+function loadPending() { return readJSON(PENDING_KEY, []); }
+function savePending(ops) { writeJSON(PENDING_KEY, ops); }
+function addPending(op) {
+  const ops = loadPending().filter(o => opDate(o) !== opDate(op));
+  ops.push(op);
+  savePending(ops);
+}
+
+// Local half of a save: synchronous, so it also works from pagehide
+function commitLocal(op) {
+  setEntries(applyOp(loadEntries(), op));
+  if (isConfigured()) addPending(op);
+}
+
+// Push queued edits to GitHub. On a conflict, re-fetch, re-apply our edits on top
+// of what's there (merge by date), and retry once.
+let _flushing = null;
+function flushPending() {
+  if (_flushing) return _flushing.then(() => flushPending());
+  _flushing = (async () => {
+    if (!isConfigured()) return { ok: true, local: true };
+    if (!loadPending().length) return { ok: true };
+    setSyncStatus('saving…');
+    try {
+      if (!_sha['data.json']) await rebaseOnRemote();
+      try {
+        await ghPut('data.json', loadEntries());
+      } catch (e) {
+        if (!(e instanceof ConflictError)) throw e;
+        await rebaseOnRemote();
+        await ghPut('data.json', loadEntries());
+      }
+      savePending([]);
+      setSyncStatus('✓ saved', 'good');
+      return { ok: true };
+    } catch (e) {
+      setSyncStatus('⚠ not synced', 'bad', e.message);
+      return { ok: false, error: e.message };
+    }
+  })();
+  return _flushing.finally(() => { _flushing = null; });
+}
+
+async function rebaseOnRemote() {
+  let list = await ghGet('data.json');
+  for (const op of loadPending()) list = applyOp(list, op);
+  setEntries(list);
+}
+
+async function commitOp(op) {
+  commitLocal(op);
+  return flushPending();
+}
+
+async function loadEntriesAsync() {
+  if (!isConfigured()) return loadEntries();
   try {
-    const stored = JSON.parse(localStorage.getItem(TARGETS_KEY) || '{}');
-    const t = { ...DEFAULT_TARGETS, ...stored,
-      milestones: stored.milestones || DEFAULT_TARGETS.milestones };
-    _targets = t;
-    return t;
+    await rebaseOnRemote();   // remote + any edits that didn't reach GitHub yet
+    _lastPull = Date.now();
+  } catch (e) {
+    console.warn('Could not load entries from GitHub, using cache:', e.message);
+    setSyncStatus('⚠ offline — using cached data', 'bad', e.message);
   }
-  catch { return { ...DEFAULT_TARGETS }; }
+  return loadEntries();
+}
+
+// ── Targets ──
+
+function normaliseTargets(t) {
+  return { ...DEFAULT_TARGETS, ...t, milestones: (t && t.milestones) || DEFAULT_TARGETS.milestones };
+}
+function loadTargets() {
+  if (!_targets) _targets = normaliseTargets(readJSON(TARGETS_KEY, {}));
+  return _targets;
 }
 
 async function loadTargetsAsync() {
   if (isConfigured()) {
     try {
-      const t = await ghGet('targets.json');
-      _targets = { ...DEFAULT_TARGETS, ...t,
-        milestones: t.milestones || DEFAULT_TARGETS.milestones };
-      localStorage.setItem(TARGETS_KEY, JSON.stringify(_targets));
-    } catch(e) {
+      _targets = normaliseTargets(await ghGet('targets.json'));
+      writeJSON(TARGETS_KEY, _targets);
+    } catch (e) {
       console.warn('Could not load targets from GitHub, using cache:', e.message);
     }
   }
@@ -677,163 +1114,215 @@ async function loadTargetsAsync() {
 
 async function saveTargetsData(t) {
   _targets = t;
-  localStorage.setItem(TARGETS_KEY, JSON.stringify(t));
-  if (isConfigured()) {
-    setSyncStatus('saving…');
-    try {
+  writeJSON(TARGETS_KEY, t);
+  if (!isConfigured()) return { ok: true, local: true };
+  setSyncStatus('saving…');
+  try {
+    try { await ghPut('targets.json', t); }
+    catch (e) {
+      if (!(e instanceof ConflictError)) throw e;
+      // Targets are last-write-wins: refresh the sha and save ours
+      await ghGet('targets.json');
       await ghPut('targets.json', t);
-      setSyncStatus('✓ saved', 'good');
-    } catch(e) {
-      setSyncStatus('⚠ save failed: ' + e.message, 'bad');
     }
+    setSyncStatus('✓ saved', 'good');
+    return { ok: true };
+  } catch (e) {
+    setSyncStatus('⚠ targets not synced', 'bad', e.message);
+    return { ok: false, error: e.message };
   }
 }
 
-function loadEntries() {
-  if (_entries) return _entries;
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
-}
-
-async function loadEntriesAsync() {
-  if (isConfigured()) {
-    try {
-      const data = await ghGet('data.json');
-      _entries = data;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    } catch(e) {
-      console.warn('Could not load entries from GitHub, using cache:', e.message);
-    }
-  }
-  return loadEntries();
-}
-
-async function saveEntries(entries) {
-  _entries = entries;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-  if (isConfigured()) {
-    setSyncStatus('saving…');
-    try {
-      await ghPut('data.json', entries);
-      setSyncStatus('✓ saved', 'good');
-    } catch(e) {
-      setSyncStatus('⚠ save failed: ' + e.message, 'bad');
-    }
-  }
-}
-
-// ── Derived calculations ──────────────────────────
+// ═══════════════════════════════════════════════════
+//  DERIVED CALCULATIONS
+// ═══════════════════════════════════════════════════
 
 function calcFastDuration(prevEnd, start) {
-  // Fast = time from end of previous day's eating to start of today's eating
-  // e.g. prev end 19:45, today start 12:00 → (24:00-19:45) + 12:00 = 16:15
+  // Fast = from previous day's last meal to this day's first meal
+  // e.g. prev end 19:45, today start 12:00 → (24:00-19:45) + 12:00 = 16.25h
   if (!prevEnd || !start) return null;
   const [ph, pm] = prevEnd.split(':').map(Number);
   const [sh, sm] = start.split(':').map(Number);
-  const prevEndMin = ph * 60 + pm;
-  const startMin   = sh * 60 + sm;
-  const fastMin    = (24 * 60 - prevEndMin) + startMin;
-  if (fastMin <= 0 || fastMin > 24 * 60) return null;
+  const fastMin = (24 * 60 - (ph * 60 + pm)) + (sh * 60 + sm);
+  if (fastMin <= 0 || fastMin > 36 * 60) return null;
   return fastMin / 60;
 }
 
-function calcWeightedAvg(entries, upToIndex) {
-  // Weighted 7-day average: weights [1,2,3,4,5,6,7] newest=7
-  const weights = [1, 2, 3, 4, 5, 6, 7];
-  const slice = [];
-  for (let i = upToIndex; i >= 0 && slice.length < 7; i--) {
-    if (entries[i].weight != null) slice.unshift(entries[i].weight);
-  }
-  if (slice.length === 0) return null;
-  let wsum = 0, wt = 0;
-  for (let i = 0; i < slice.length; i++) {
-    const w = weights[weights.length - slice.length + i];
-    wsum += slice[i] * w;
-    wt += w;
-  }
-  return wsum / wt;
+function eatingWindow(start, end) {
+  if (!start || !end) return null;
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  const w = (eh * 60 + em) - (sh * 60 + sm);
+  return w > 0 ? w / 60 : null;
 }
 
-function calcSevenDayAvg(entries, upToIndex) {
-  const slice = [];
-  for (let i = upToIndex; i >= 0 && slice.length < 7; i--) {
-    if (entries[i].weight != null) slice.unshift(entries[i].weight);
-  }
-  if (!slice.length) return null;
-  return slice.reduce((a, b) => a + b, 0) / slice.length;
-}
-
-function calcRollingUnits(entries, upToIndex) {
-  // Sum drinks over last 7 days (inclusive), each drink = 2 units
-  let drinks = 0;
-  for (let i = upToIndex; i >= 0 && i > upToIndex - 7; i--) {
-    drinks += entries[i].drinks || 0;
-  }
-  return drinks * 2;
-}
-
-function calcStepAvg(entries, upToIndex) {
-  const slice = [];
-  for (let i = upToIndex; i >= 0 && slice.length < 7; i--) {
-    if (entries[i].steps != null) slice.unshift(entries[i].steps);
-  }
-  if (!slice.length) return null;
-  return slice.reduce((a, b) => a + b, 0) / slice.length;
-}
-
+// All rolling figures use calendar windows (the 7 days ending on the entry's date),
+// so gaps in logging don't stretch a "7-day" figure over weeks.
 function enrich(entries) {
-  // Sort by date ascending
-  const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
-  return sorted.map((e, i) => ({
-    ...e,
-    weightedAvg: calcWeightedAvg(sorted, i),
-    sevenDayAvg: calcSevenDayAvg(sorted, i),
-    rollingUnits: calcRollingUnits(sorted, i),
-    stepAvg: calcStepAvg(sorted, i),
-    fastDuration: i > 0
-      ? calcFastDuration(sorted[i-1].fastEnd, e.fastStart)
-      : null,
-    delta: i > 0 && sorted[i-1].weight != null && e.weight != null
-      ? e.weight - sorted[i-1].weight : null,
-  }));
+  const sorted = [...entries].sort(byDate);
+  const map = Object.fromEntries(sorted.map(e => [e.date, e]));
+  const xs = sorted.map(e => dayNum(e.date));
+  return sorted.map((e, i) => {
+    const x = xs[i];
+    let wsum = 0, wt = 0, sum = 0, cnt = 0, stepSum = 0, stepCnt = 0, drinks = 0;
+    for (let j = i; j >= 0 && xs[j] > x - 7; j--) {
+      const o = sorted[j];
+      const w = 7 - (x - xs[j]);           // newest = 7 … oldest = 1
+      if (o.weight != null) { wsum += o.weight * w; wt += w; sum += o.weight; cnt++; }
+      if (o.steps != null) { stepSum += o.steps; stepCnt++; }
+      drinks += o.drinks || 0;
+    }
+    const prevDay = map[addDays(e.date, -1)];
+    return {
+      ...e,
+      x,
+      weightedAvg:  wt ? wsum / wt : null,
+      sevenDayAvg:  cnt ? sum / cnt : null,
+      stepAvg:      stepCnt ? stepSum / stepCnt : null,
+      rollingUnits: drinks * UNITS_PER_DRINK,
+      fastDuration: prevDay ? calcFastDuration(prevDay.fastEnd, e.fastStart) : null,
+      prevFastEnd:  prevDay ? prevDay.fastEnd : null,
+      delta: prevDay && prevDay.weight != null && e.weight != null ? e.weight - prevDay.weight : null,
+      gym: parseGym(e.notes),
+    };
+  });
 }
 
-function todayStr() {
-  const d = new Date();
-  return d.getFullYear() + '-' +
-    String(d.getMonth() + 1).padStart(2, '0') + '-' +
-    String(d.getDate()).padStart(2, '0');
+// Least-squares line through daily weights over the last `windowDays` days of data
+function trendFit(enriched, windowDays) {
+  const withW = enriched.filter(e => e.weight != null);
+  if (!withW.length) return null;
+  const lastX = withW[withW.length - 1].x;
+  const pts = withW.filter(e => e.x > lastX - windowDays).map(e => [e.x - lastX, e.weight]);
+  if (pts.length < 5) return null;
+  const n = pts.length;
+  const mx = pts.reduce((a, p) => a + p[0], 0) / n;
+  const my = pts.reduce((a, p) => a + p[1], 0) / n;
+  let sxy = 0, sxx = 0;
+  for (const [x, y] of pts) { sxy += (x - mx) * (y - my); sxx += (x - mx) ** 2; }
+  if (!sxx) return null;
+  const slope = sxy / sxx;               // kg per day
+  const a = my - slope * mx;             // value at lastX
+  return { slope, windowDays, n, lastX, at: x => a + slope * (x - lastX) };
 }
 
-// ── Find planned target weight for a date ─────────
-// Uses the weekly milestone table from the Rnd sheet, interpolating daily
-// between adjacent milestones (stepped plan, not linear overall).
+// ── Planned target weight for a date ──
+// Weekly milestones from the Rnd sheet, interpolated daily between adjacent milestones.
 function targetWeight(dateStr) {
   const ms = loadTargets().milestones;
   if (!ms || !ms.length) return null;
-  const d = new Date(dateStr).getTime();
-  const d0 = new Date(ms[0][0]).getTime();
-  const dN = new Date(ms[ms.length - 1][0]).getTime();
-  if (d <= d0) return ms[0][1];
-  if (d >= dN) return ms[ms.length - 1][1];
-  // Find the bracketing pair and interpolate between them
+  const d = dayNum(dateStr);
+  if (d <= dayNum(ms[0][0])) return ms[0][1];
   for (let i = 1; i < ms.length; i++) {
-    const t1 = new Date(ms[i-1][0]).getTime();
-    const t2 = new Date(ms[i][0]).getTime();
+    const t1 = dayNum(ms[i - 1][0]), t2 = dayNum(ms[i][0]);
     if (d >= t1 && d <= t2) {
-      const frac = (d - t1) / (t2 - t1);
-      return ms[i-1][1] + frac * (ms[i][1] - ms[i-1][1]);
+      const frac = t2 === t1 ? 1 : (d - t1) / (t2 - t1);
+      return ms[i - 1][1] + frac * (ms[i][1] - ms[i - 1][1]);
     }
   }
   return ms[ms.length - 1][1];
 }
 
-// Convenience: first and last milestone dates/weights for chart axis bounds
 function getTargetBounds() {
   const ms = loadTargets().milestones;
+  if (!ms || !ms.length) return null;
   return {
-    start: { date: ms[0][0],           wt: ms[0][1] },
-    end:   { date: ms[ms.length-1][0], wt: ms[ms.length-1][1] },
+    start: { date: ms[0][0],             wt: ms[0][1] },
+    end:   { date: ms[ms.length - 1][0], wt: ms[ms.length - 1][1] },
   };
+}
+
+// ═══════════════════════════════════════════════════
+//  GYM NOTES PARSER
+//  Reads Matt's shorthand, e.g.
+//  "Gym [KNG] - 5m xt @ L14/63c/181w, 4xGEM[chest:55[W]/50[W8], s:20[WW9]], 15m xt @ L12/170c/153w"
+// ═══════════════════════════════════════════════════
+
+const GYM_ALIASES = {
+  s: 'shoulder', shoulder: 'shoulder',
+  r: 'row', row: 'row', rowf: 'row',
+  c: 'chest', chest: 'chest',
+  p: 'pec', pec: 'pec',
+  l: 'lat', lat: 'lat',
+};
+const CARDIO_NAMES = { xt: 'xt', tm: 'tm', WB: 'WB' };
+
+function stripBrackets(s) {
+  let prev;
+  do { prev = s; s = s.replace(/\[[^\[\]]*\]/g, ''); } while (s !== prev);
+  return s.replace(/[\[\]]/g, '');
+}
+
+function parseGym(notes) {
+  if (!notes || !/^\s*gym\b/i.test(notes)) return null;
+  const out = { location: null, exercises: 0, lifts: {}, cardio: [], cardioMin: 0, cardioKcal: 0 };
+  const loc = notes.match(/^\s*gym\s*\[([A-Za-z]+)\]/i);
+  if (loc) out.location = loc[1].toUpperCase();
+
+  // Strength blocks: 4xGEM[...], 5xLGEM[...], 3xFGEM[...]
+  const re = /(\d+)\s*x\s*[A-Z]*GEM\s*\[/gi;
+  let m;
+  while ((m = re.exec(notes))) {
+    let depth = 1, i = re.lastIndex;
+    while (i < notes.length && depth > 0) {
+      if (notes[i] === '[') depth++; else if (notes[i] === ']') depth--;
+      i++;
+    }
+    const inner = notes.slice(re.lastIndex, depth === 0 ? i - 1 : i);
+    out.exercises += parseInt(m[1], 10);
+    const flat = stripBrackets(inner);
+    const exRe = /([a-z]+)\s*:\s*([^,\s]*)/gi;
+    let x;
+    while ((x = exRe.exec(flat))) {
+      const name = GYM_ALIASES[x[1].toLowerCase()] || x[1].toLowerCase();
+      const nums = (x[2].match(/\d+(?:\.\d+)?/g) || []).map(Number);
+      if (!nums.length) continue;
+      out.lifts[name] = Math.max(out.lifts[name] || 0, Math.max(...nums));
+    }
+  }
+
+  // Cardio segments: "<N>m xt|tm|WB …" with optional "<kcal>c".
+  // Plain comma split (not bracket-aware) so an unbalanced bracket in the
+  // strength block can't swallow the cardio that follows it.
+  const body = notes.replace(/^\s*gym\s*(\[[^\]]*\])?\s*-?\s*/i, '');
+  for (const seg of body.split(',')) {
+    const type = (seg.match(/\b(xt|tm|WB)\b/) || [])[1];
+    if (!type) continue;
+    const mm = seg.match(/(\d+(?:\+\d+)*)\s*m\b/);
+    const minutes = mm ? mm[1].split('+').reduce((a, b) => a + Number(b), 0) : null;
+    const kc = (seg.match(/(\d+)c\b/g) || []).map(v => parseInt(v, 10));
+    const kcal = kc.length ? Math.max(...kc) : null;
+    if (minutes == null && kcal == null) continue;
+    out.cardio.push({ type: CARDIO_NAMES[type], minutes, kcal });
+    out.cardioMin += minutes || 0;
+    out.cardioKcal += kcal || 0;
+  }
+  return out;
+}
+
+// Group enriched entries into Monday-start weeks
+function weeklyBuckets(enriched) {
+  const weeks = new Map();
+  for (const e of enriched) {
+    const ws = weekStart(e.x);
+    if (!weeks.has(ws)) weeks.set(ws, []);
+    weeks.get(ws).push(e);
+  }
+  return [...weeks.entries()].sort((a, b) => a[0] - b[0]).map(([ws, list]) => {
+    const mean = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+    const gym = list.filter(e => e.gym);
+    return {
+      ws, list,
+      avgWeight: mean(list.filter(e => e.weight != null).map(e => e.weight)),
+      avgSteps:  mean(list.filter(e => e.steps != null).map(e => e.steps)),
+      avgFast:   mean(list.filter(e => e.fastDuration != null).map(e => e.fastDuration)),
+      units:     list.reduce((a, e) => a + (e.drinks || 0), 0) * UNITS_PER_DRINK,
+      gym:       gym.length,
+      cardioMin: gym.reduce((a, e) => a + e.gym.cardioMin, 0),
+      cardioKcal: gym.reduce((a, e) => a + e.gym.cardioKcal, 0),
+      days:      list.length,
+    };
+  });
 }
 
 // ═══════════════════════════════════════════════════
@@ -845,129 +1334,192 @@ let chartRange = 0;
 
 function showPage(name) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.page === name));
   document.getElementById('page-' + name).classList.add('active');
-  document.querySelector(`nav button[onclick="showPage('${name}')"]`).classList.add('active');
   currentPage = name;
-  if (name === 'today')    renderStats();
-  if (name === 'chart')    renderCharts();
-  if (name === 'history')  renderHistory();
-  if (name === 'targets')  initTargetsForm();
-  if (name === 'settings') initSettingsForm();
+  renderCurrentPage();
+  window.scrollTo(0, 0);
+}
+
+function renderCurrentPage() {
+  if (currentPage === 'today')    renderStats();
+  if (currentPage === 'chart')    renderCharts();
+  if (currentPage === 'history')  renderHistory();
+  if (currentPage === 'targets')  initTargetsForm();
+  if (currentPage === 'settings') initSettingsForm();
 }
 
 // ═══════════════════════════════════════════════════
 //  TODAY PAGE
 // ═══════════════════════════════════════════════════
 
-// Build 15-minute-increment options for a time <select> (range startH..endH inclusive)
-function buildTimeOptions(selectId, startH = 6, endH = 23) {
+const FORM_FIELDS = ['f-weight', 'f-steps', 'f-drinks', 'f-rp', 'f-waist', 'f-bps', 'f-bpd', 'f-notes'];
+let _formSnapshot = '';
+let _formOpenedAsToday = false;   // so the form moves on to the new day after midnight
+let _autosaveTimer = null;
+
+function buildTimeOptions(selectId, startH, endH) {
   const sel = document.getElementById(selectId);
-  // Keep the first "not set" option, remove the rest
   while (sel.options.length > 1) sel.remove(1);
   for (let h = startH; h <= endH; h++) {
     for (let m = 0; m < 60; m += 15) {
-      const hh = String(h).padStart(2, '0');
-      const mm = String(m).padStart(2, '0');
-      const val = `${hh}:${mm}`;
-      const opt = document.createElement('option');
-      opt.value = val;
-      opt.textContent = val;
-      sel.appendChild(opt);
+      const val = `${pad2(h)}:${pad2(m)}`;
+      sel.add(new Option(val, val));
     }
   }
+}
+
+// Make sure a stored time outside the 15-min list still shows (and isn't lost on re-save)
+function setTimeSelect(id, val) {
+  const sel = document.getElementById(id);
+  if (val && ![...sel.options].some(o => o.value === val)) {
+    const opts = [...sel.options].slice(1);
+    const before = opts.find(o => o.value > val);
+    sel.add(new Option(val, val), before || null);
+  }
+  sel.value = val || '';
 }
 
 function initForm() {
   buildTimeOptions('f-fast-start', 6, 22);
   buildTimeOptions('f-fast-end',   9, 23);
 
-  document.getElementById('f-date').value = todayStr();
-  const entries = loadEntries();
-  const existing = entries.find(e => e.date === todayStr());
-  if (existing) populateForm(existing);
-  else updateFormHeading(todayStr());
+  const form = document.getElementById('entry-form');
+  form.addEventListener('input', onFormEdit);
+  form.addEventListener('change', onFormEdit);
+  document.getElementById('f-date').addEventListener('change', async ev => {
+    ev.stopPropagation();
+    const d = ev.target.value;
+    if (!d) return;
+    if (d > todayStr()) { ev.target.value = todayStr(); return loadDate(todayStr()); }
+    await loadDate(d, { fromDateInput: true });
+  });
 
-  // Live fast duration calc
-  ['f-fast-start', 'f-fast-end'].forEach(id =>
-    document.getElementById(id).addEventListener('change', updateFastDisplay));
+  document.getElementById('btn-prev-day').addEventListener('click', () => navigateDay(-1));
+  document.getElementById('btn-next-day').addEventListener('click', () => navigateDay(1));
+  document.getElementById('btn-save').addEventListener('click', () => saveEntry());
+  document.getElementById('btn-clear').addEventListener('click', clearForm);
+  document.getElementById('btn-delete').addEventListener('click', deleteCurrentEntry);
+
+  const auto = document.getElementById('autosave-toggle');
+  auto.checked = loadPrefs().autosave;
+  auto.addEventListener('change', () => {
+    setPref('autosave', auto.checked);
+    if (auto.checked && isDirty()) scheduleAutosave();
+  });
+
+  populateFor(todayStr());
+}
+
+function onFormEdit(ev) {
+  if (ev.target.id === 'f-date') return;
+  if (ev.target.id === 'f-fast-start' || ev.target.id === 'f-fast-end') updateFastDisplay();
+  if (loadPrefs().autosave) scheduleAutosave();
+}
+
+function scheduleAutosave() {
+  clearTimeout(_autosaveTimer);
+  _autosaveTimer = setTimeout(() => { _autosaveTimer = null; saveEntry({ auto: true }); }, 1200);
+}
+
+async function flushAutosave() {
+  if (_autosaveTimer) {
+    clearTimeout(_autosaveTimer);
+    _autosaveTimer = null;
+    await saveEntry({ auto: true });
+  }
+}
+
+function isDirty() { return JSON.stringify(readForm()) !== _formSnapshot; }
+
+// Fill the form for a date from its stored entry (or blank)
+function populateFor(dateStr) {
+  const e = findEntry(dateStr);
+  document.getElementById('f-date').value = dateStr;
+  const v = (k) => e && e[k] != null ? e[k] : '';
+  document.getElementById('f-weight').value = v('weight');
+  document.getElementById('f-steps').value  = v('steps');
+  document.getElementById('f-drinks').value = e && e.drinks ? e.drinks : '';
+  document.getElementById('f-rp').value     = v('rp');
+  document.getElementById('f-waist').value  = v('waist');
+  document.getElementById('f-bps').value    = v('bps');
+  document.getElementById('f-bpd').value    = v('bpd');
+  document.getElementById('f-notes').value  = v('notes');
+  setTimeSelect('f-fast-start', e && e.fastStart);
+  setTimeSelect('f-fast-end',   e && e.fastEnd);
+  // open Vitals only if this day has any
+  document.getElementById('vitals-details').open = !!(e && (e.rp != null || e.waist != null || e.bps != null || e.bpd != null));
+  _formSnapshot = JSON.stringify(readForm());
+  _formOpenedAsToday = dateStr === todayStr();
+  updateFormHeading(dateStr);
   updateFastDisplay();
-  renderStats();
+  setFormStatus('');
+}
+
+async function loadDate(dateStr, opts = {}) {
+  const current = _formSnapshot ? JSON.parse(_formSnapshot).date : null;
+  if (loadPrefs().autosave) {
+    if (opts.fromDateInput && current) {
+      // the date input already changed: save pending edits under the old date
+      if (_autosaveTimer) {
+        clearTimeout(_autosaveTimer); _autosaveTimer = null;
+        const pending = { ...readForm(), date: current };
+        if (!isEntryEmpty(pending)) { commitLocal({ type: 'upsert', entry: pending }); flushPending(); }
+      }
+    } else {
+      await flushAutosave();
+    }
+  } else if (isDirtyIgnoringDate() && !confirm('Discard unsaved changes to ' + fmtDate(current) + '?')) {
+    if (opts.fromDateInput) document.getElementById('f-date').value = current;
+    return;
+  }
+  populateFor(dateStr);
+}
+
+function isDirtyIgnoringDate() {
+  if (!_formSnapshot) return false;
+  const snap = JSON.parse(_formSnapshot);
+  return JSON.stringify({ ...readForm(), date: snap.date }) !== _formSnapshot;
 }
 
 function updateFormHeading(dateStr) {
   const isToday = dateStr === todayStr();
+  const exists = !!findEntry(dateStr);
   document.getElementById('form-heading').textContent =
-    isToday ? 'Log today' : 'Edit entry — ' + fmtDate(dateStr);
-  // Hide → only when already on today (can't go further forward)
-  document.getElementById('btn-next-day').style.visibility =
-    isToday ? 'hidden' : 'visible';
+    isToday ? (exists ? 'Today — ' + fmtDate(dateStr) : 'Log today') : (exists ? 'Edit — ' : 'Log — ') + fmtDate(dateStr);
+  document.getElementById('btn-next-day').style.visibility = isToday ? 'hidden' : 'visible';
+  document.getElementById('btn-delete').style.display = exists ? '' : 'none';
 }
 
 function navigateDay(delta) {
   const current = document.getElementById('f-date').value || todayStr();
-  const [y, mo, dy] = current.split('-').map(Number);
-  const d = new Date(y, mo - 1, dy + delta);
-  const newDate = d.getFullYear() + '-' +
-    String(d.getMonth() + 1).padStart(2, '0') + '-' +
-    String(d.getDate()).padStart(2, '0');
-  // Don't navigate into the future
-  if (newDate > todayStr()) return;
-  const entries = loadEntries();
-  const existing = entries.find(e => e.date === newDate);
-  if (existing) {
-    populateForm(existing);
-  } else {
-    // Clear form fields but set the new date
-    document.getElementById('f-date').value = newDate;
-    ['f-weight','f-steps','f-drinks',
-     'f-rp','f-waist','f-bps','f-bpd','f-notes'].forEach(id => {
-      document.getElementById(id).value = '';
-    });
-    document.getElementById('f-fast-start').value = '';
-    document.getElementById('f-fast-end').value = '';
-    updateFormHeading(newDate);
-    updateFastDisplay();
-  }
-}
-
-function populateForm(e) {
-  document.getElementById('f-date').value    = e.date || '';
-  document.getElementById('f-weight').value  = e.weight ?? '';
-  document.getElementById('f-steps').value   = e.steps ?? '';
-  document.getElementById('f-drinks').value  = e.drinks ?? '';
-  document.getElementById('f-fast-start').value = e.fastStart || '';
-  document.getElementById('f-fast-end').value   = e.fastEnd || '';
-  document.getElementById('f-rp').value      = e.rp ?? '';
-  document.getElementById('f-waist').value   = e.waist ?? '';
-  document.getElementById('f-bps').value     = e.bps ?? '';
-  document.getElementById('f-bpd').value     = e.bpd ?? '';
-  document.getElementById('f-notes').value   = e.notes || '';
-  updateFastDisplay();
-  updateFormHeading(e.date || todayStr());
+  const next = addDays(current, delta);
+  if (next > todayStr()) return;
+  loadDate(next);
 }
 
 function updateFastDisplay() {
+  const date  = document.getElementById('f-date').value || todayStr();
   const start = document.getElementById('f-fast-start').value;
   const end   = document.getElementById('f-fast-end').value;
-  // For live display use same-day approximation: 24h minus eating window
-  const h = (start && end) ? (() => {
-    const [sh,sm] = start.split(':').map(Number);
-    const [eh,em] = end.split(':').map(Number);
-    const win = (eh*60+em)-(sh*60+sm);
-    return win > 0 ? (24*60-win)/60 : null;
-  })() : null;
+  const prevDate = addDays(date, -1);
+  const prev = findEntry(prevDate);
+  const prevEnd = prev && prev.fastEnd;
+  const h = calcFastDuration(prevEnd, start);
+  const tgt = loadTargets();
+
   const el = document.getElementById('fast-duration-text');
-  const winEl = document.getElementById('fast-window-text');
-  if (h === null) {
-    el.textContent = '—';
-    winEl.textContent = '';
-  } else {
-    const windowH = 24 - h;
-    el.textContent = h.toFixed(1) + 'h';
-    winEl.textContent = `(${windowH.toFixed(0)}h eating window)`;
-    el.style.color = h >= 16 ? 'var(--green)' : h >= 14 ? 'var(--amber)' : 'var(--red)';
-  }
+  const since = document.getElementById('fast-since-text');
+  const win = document.getElementById('fast-window-text');
+
+  el.textContent = fmtHours(h);
+  el.style.color = h == null ? '' : h >= tgt.fast ? 'var(--green)' : h >= tgt.fast - 2 ? 'var(--amber)' : 'var(--red)';
+  since.textContent = h != null
+    ? `since ${prevEnd} ${fmtShort(prevDate)} → ${start}`
+    : !prevEnd ? `(no last meal logged for ${fmtDate(prevDate)})`
+    : '(set first meal)';
+  const w = eatingWindow(start, end);
+  win.textContent = w != null ? `${fmtHours(w)} eating window` : '';
 }
 
 function readForm() {
@@ -984,92 +1536,394 @@ function readForm() {
     waist:     num('f-waist'),
     bps:       num('f-bps'),
     bpd:       num('f-bpd'),
-    notes:     document.getElementById('f-notes').value.trim() || null,
+    notes:     str('f-notes'),
   };
 }
 
-async function saveEntry() {
+function isEntryEmpty(e) {
+  return ['weight', 'steps', 'fastStart', 'fastEnd', 'rp', 'waist', 'bps', 'bpd', 'notes'].every(k => e[k] == null) && !e.drinks;
+}
+
+function setFormStatus(msg, type, title) {
+  const s = document.getElementById('save-status');
+  s.textContent = msg;
+  s.className = 'status' + (type ? ' ' + type : '');
+  s.title = title || '';
+}
+
+async function saveEntry(opts = {}) {
   const entry = readForm();
-  if (!entry.date) { alert('Please select a date.'); return; }
+  if (!entry.date) { setFormStatus('Pick a date first', 'bad'); return; }
+  if (entry.date > todayStr()) { setFormStatus('Can’t log a future date', 'bad'); return; }
+  const existing = findEntry(entry.date);
+  if (opts.auto) {
+    // auto-save never writes a blank entry (use Delete for that) and skips no-op saves
+    if (isEntryEmpty(entry)) return;
+    if (existing && JSON.stringify(existing) === JSON.stringify(entry)) return;
+  }
 
-  const status = document.getElementById('save-status');
-  status.textContent = 'Saving…';
+  setFormStatus(opts.auto ? 'Auto-saving…' : 'Saving…');
+  const res = await commitOp({ type: 'upsert', entry });
+  // only reset the snapshot if the form still shows this entry
+  if (document.getElementById('f-date').value === entry.date) _formSnapshot = JSON.stringify(entry);
 
-  const entries = loadEntries();
-  const idx = entries.findIndex(e => e.date === entry.date);
-  if (idx >= 0) entries[idx] = entry;
-  else entries.push(entry);
-  await saveEntries(entries);
-
-  status.textContent = '✓ Saved';
-  setTimeout(() => { status.textContent = ''; }, 2500);
+  if (res.ok) {
+    setFormStatus(res.local ? '✓ Saved in this browser' : '✓ Saved', 'good');
+    setTimeout(() => { const s = document.getElementById('save-status'); if (s.textContent.startsWith('✓')) setFormStatus(''); }, 2500);
+  } else {
+    setFormStatus('⚠ Saved on this device only — not synced to GitHub (will retry)', 'bad', res.error);
+  }
+  updateFormHeading(document.getElementById('f-date').value);
+  updateFastDisplay();
   renderStats();
 }
 
 function clearForm() {
-  document.getElementById('f-date').value = todayStr();
-  ['f-weight','f-steps','f-drinks',
-   'f-rp','f-waist','f-bps','f-bpd','f-notes'].forEach(id => {
-    document.getElementById(id).value = '';
-  });
+  FORM_FIELDS.forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('f-fast-start').value = '';
   document.getElementById('f-fast-end').value = '';
-  updateFormHeading(todayStr());
   updateFastDisplay();
+}
+
+async function deleteCurrentEntry() {
+  const date = document.getElementById('f-date').value;
+  if (!findEntry(date)) return;
+  if (!confirm('Delete the entry for ' + fmtDate(date) + '?')) return;
+  await deleteEntry(date);
+  populateFor(date);
+}
+
+async function deleteEntry(date) {
+  clearTimeout(_autosaveTimer); _autosaveTimer = null;
+  const res = await commitOp({ type: 'delete', date });
+  if (!res.ok) setFormStatus('⚠ Deleted on this device only — not synced (will retry)', 'bad', res.error);
+  renderStats();
+  return res;
 }
 
 function renderStats() {
   const entries = enrich(loadEntries());
   const strip = document.getElementById('stats-strip');
-  if (!entries.length) { strip.innerHTML = ''; return; }
+  const caption = document.getElementById('stats-caption');
+  renderHeadline(entries);
+  if (!entries.length) { strip.innerHTML = ''; caption.textContent = ''; return; }
 
   const last = entries[entries.length - 1];
-  const target = targetWeight(last.date);
-  const diff = last.weight != null ? (last.weight - target) : null;
-  const diffClass = diff == null ? '' : diff < -0.5 ? 'good' : diff < 0.5 ? '' : 'warn';
-
-  const units = last.rollingUnits;
   const tgt = loadTargets();
-  const unitsClass = units <= tgt.units * 0.67 ? 'good' : units <= tgt.units ? 'warn' : 'bad';
+  const target = targetWeight(last.date);
+  caption.textContent = last.date === todayStr() ? 'Today' : 'Latest entry · ' + fmtDate(last.date);
 
+  const avgGap = last.weightedAvg != null && target != null ? last.weightedAvg - target : null;
+  const avgClass = avgGap == null ? '' : avgGap <= 0 ? 'good' : avgGap <= 1 ? 'warn' : 'bad';
+  const units = last.rollingUnits;
+  const unitsClass = units <= tgt.units * 0.67 ? 'good' : units <= tgt.units ? 'warn' : 'bad';
   const fast = last.fastDuration;
   const fastClass = fast == null ? '' : fast >= tgt.fast ? 'good' : fast >= tgt.fast - 2 ? 'warn' : 'bad';
-
   const stepsClass = last.steps == null ? '' : last.steps >= tgt.steps ? 'good' : last.steps >= tgt.steps * 0.7 ? 'warn' : 'bad';
+  const rpClass = last.rp == null || tgt.rp == null ? '' : last.rp <= tgt.rp ? 'good' : last.rp <= tgt.rp + 5 ? 'warn' : 'bad';
 
   strip.innerHTML = `
-    <div class="stat-box ${diffClass}">
-      <div class="label">Weight</div>
-      <div class="value">${last.weight != null ? last.weight.toFixed(2) : '—'}</div>
-      <div class="sub">target ${target.toFixed(1)} kg</div>
-    </div>
     <div class="stat-box">
+      <div class="label">Weight</div>
+      <div class="value">${fx(last.weight, 2)}</div>
+      <div class="sub">${last.delta != null ? signed(last.delta, 2) + ' vs day before' : 'kg'}</div>
+    </div>
+    <div class="stat-box ${avgClass}">
       <div class="label">7d wtd avg</div>
-      <div class="value">${last.weightedAvg != null ? last.weightedAvg.toFixed(2) : '—'}</div>
-      <div class="sub">${last.delta != null ? (last.delta > 0 ? '+' : '') + last.delta.toFixed(2) + ' vs prev' : ''}</div>
+      <div class="value">${fx(last.weightedAvg, 2)}</div>
+      <div class="sub">plan ${fx(target, 1)} kg</div>
     </div>
     <div class="stat-box ${fastClass}">
-      <div class="label">Fast today</div>
-      <div class="value">${fast != null ? fast.toFixed(1) + 'h' : '—'}</div>
-      <div class="sub">${last.fastStart && last.fastEnd ? last.fastStart + ' – ' + last.fastEnd : 'not set'}</div>
+      <div class="label">Fast</div>
+      <div class="value">${fast != null ? fx(fast, 1) + 'h' : '—'}</div>
+      <div class="sub">${fast != null ? last.prevFastEnd + ' → ' + last.fastStart : 'target ' + tgt.fast + 'h'}</div>
     </div>
     <div class="stat-box ${stepsClass}">
       <div class="label">Steps (k)</div>
-      <div class="value">${last.steps != null ? last.steps.toFixed(1) : '—'}</div>
-      <div class="sub">target 10k</div>
+      <div class="value">${fx(last.steps, 1)}</div>
+      <div class="sub">target ${tgt.steps}k</div>
     </div>
     <div class="stat-box ${unitsClass}">
       <div class="label">Units (7d)</div>
       <div class="value">${units.toFixed(0)}</div>
-      <div class="sub">target ≤21</div>
+      <div class="sub">target ≤${tgt.units}</div>
     </div>
-    <div class="stat-box">
+    <div class="stat-box ${rpClass}">
       <div class="label">Rest pulse</div>
       <div class="value">${last.rp != null ? last.rp : '—'}</div>
-      <div class="sub">bpm</div>
+      <div class="sub">${tgt.rp != null ? 'target ≤' + tgt.rp : 'bpm'}</div>
     </div>
   `;
 }
+
+// "87.6 kg avg · 3.2 kg behind plan · trend −0.6 kg/wk → 84.3 kg by 31 Dec"
+function renderHeadline(entries) {
+  const card = document.getElementById('headline-card');
+  const el = document.getElementById('headline');
+  const withAvg = entries.filter(e => e.weightedAvg != null);
+  if (!withAvg.length) { card.style.display = 'none'; return; }
+  card.style.display = '';
+  const last = withAvg[withAvg.length - 1];
+  const plan = targetWeight(last.date);
+  const gap = plan != null ? last.weightedAvg - plan : null;
+  const bounds = getTargetBounds();
+  const win = loadPrefs().trend;
+  const fit = trendFit(entries, win);
+  const endX = bounds ? dayNum(bounds.end.date) : null;
+  const daysLeft = endX != null ? endX - last.x : null;
+
+  const pts = [];
+  if (gap != null) {
+    const cls = gap <= 0 ? 'good' : gap <= 1 ? 'warn' : 'bad';
+    const txt = Math.abs(gap) < 0.1 ? 'On plan' : `${Math.abs(gap).toFixed(1)} kg ${gap > 0 ? 'behind' : 'ahead of'} plan`;
+    pts.push(`<span><strong class="${cls}">${txt}</strong> (plan for ${fmtShort(last.date)}: ${plan.toFixed(1)} kg)</span>`);
+  }
+  if (fit) {
+    const wk = fit.slope * 7;
+    let line = `<span>Trend <strong>${signed(wk, 2)} kg/wk</strong> over the last ${win} days`;
+    if (daysLeft > 0) {
+      const proj = fit.at(endX);
+      const cls = proj <= bounds.end.wt + 0.05 ? 'good' : proj <= bounds.end.wt + 1 ? 'warn' : 'bad';
+      line += ` → <strong class="${cls}">${proj.toFixed(1)} kg</strong> by ${fmtShort(bounds.end.date)} (target ${bounds.end.wt})`;
+    }
+    pts.push(line + '</span>');
+  }
+  if (daysLeft > 0) {
+    const need = (bounds.end.wt - last.weightedAvg) / (daysLeft / 7);
+    pts.push(`<span>Required pace from here: <strong>${signed(need, 2)} kg/wk</strong> · ${daysLeft} days left</span>`);
+  }
+
+  el.innerHTML = `
+    <div class="headline-main">
+      <div class="label">7-day weighted avg</div>
+      <div class="big">${last.weightedAvg.toFixed(1)} <small>kg</small></div>
+    </div>
+    <div class="headline-points">${pts.join('')}</div>`;
+}
+
+// ═══════════════════════════════════════════════════
+//  CHART ENGINE — tiny canvas renderer with a date x-axis and hover/tap tooltips
+// ═══════════════════════════════════════════════════
+
+const CHARTS = {};
+
+function niceStep(raw) {
+  const p = 10 ** Math.floor(Math.log10(raw));
+  const f = raw / p;
+  return (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * p;
+}
+
+function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+function renderChart(id, cfg) {
+  CHARTS[id] = cfg;
+  paintChart(id, null);
+  attachHover(id);
+}
+
+function clearChart(id, msg) {
+  delete CHARTS[id];
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = canvas.clientWidth * dpr; canvas.height = canvas.clientHeight * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+  if (msg) {
+    ctx.fillStyle = css('--c-axis'); ctx.font = '12px -apple-system,system-ui,sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(msg, canvas.clientWidth / 2, canvas.clientHeight / 2);
+  }
+}
+
+function paintChart(id, hoverX) {
+  const cfg = CHARTS[id];
+  const canvas = document.getElementById(id);
+  if (!cfg || !canvas) return;
+  const W = canvas.clientWidth, H = canvas.clientHeight;
+  if (!W || !H) return;
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  const pad = { top: 12, right: 14, bottom: 26, left: 40 };
+  const pw = W - pad.left - pad.right, ph = H - pad.top - pad.bottom;
+  let xMin = cfg.xMin, xMax = cfg.xMax;
+  if (xMax <= xMin) { xMin -= 1; xMax += 1; }
+  const xPad = cfg.xPad || 0;
+  const x0 = xMin - xPad, x1 = xMax + xPad;
+
+  let yMin = Infinity, yMax = -Infinity;
+  const consider = v => { if (v != null && isFinite(v)) { yMin = Math.min(yMin, v); yMax = Math.max(yMax, v); } };
+  for (const s of cfg.series) for (const p of s.points) consider(p.y);
+  for (const t of cfg.thresholds || []) consider(t.y);
+  if (cfg.yMin != null) yMin = Math.min(yMin, cfg.yMin);
+  if (cfg.yMax != null) yMax = Math.max(yMax, cfg.yMax);
+  if (!isFinite(yMin)) { yMin = 0; yMax = 1; }
+  if (yMin === yMax) { yMin -= 1; yMax += 1; }
+  const yp = (yMax - yMin) * 0.06;
+  let yLo = yMin - yp, yHi = yMax + yp;
+  if (cfg.zeroBase && yMin >= 0) yLo = 0;
+  // round the axis to "nice" ticks (1, 2, 2.5, 5 × 10ⁿ)
+  let yStep = niceStep((yHi - yLo) / 4);
+  if (cfg.yDec === 0) yStep = Math.max(1, Math.round(yStep));
+  yLo = Math.floor(yLo / yStep + 1e-9) * yStep;
+  yHi = Math.ceil(yHi / yStep - 1e-9) * yStep;
+  const yTickDec = cfg.yDec === 0 ? 0 : (yStep % 1 === 0 ? 0 : yStep % 0.5 === 0 ? 1 : 2);
+
+  const toX = x => pad.left + (x - x0) / (x1 - x0) * pw;
+  const toY = y => pad.top + (1 - (y - yLo) / (yHi - yLo)) * ph;
+  cfg._geo = { toX, invX: px => x0 + (px - pad.left) / pw * (x1 - x0), W };
+
+  const C = { grid: css('--c-grid'), axis: css('--c-axis'), surface: css('--surface') };
+  ctx.font = '10px -apple-system,system-ui,sans-serif';
+  ctx.lineWidth = 1;
+
+  // Y grid + labels
+  ctx.textAlign = 'right';
+  for (let v = yLo; v <= yHi + yStep / 2; v += yStep) {
+    const y = toY(v);
+    ctx.strokeStyle = C.grid;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    ctx.fillStyle = C.axis;
+    ctx.fillText(v.toFixed(yTickDec), pad.left - 5, y + 3);
+  }
+
+  // X ticks at sensible day intervals (weekly ones on Mondays)
+  const span = xMax - xMin;
+  const steps = [1, 2, 3, 7, 14, 28, 56, 91, 182];
+  const maxTicks = Math.max(2, Math.floor(pw / 60));
+  let step = steps.find(s => span / s <= maxTicks) || 365;
+  if (cfg.weekly) step = Math.max(7, Math.ceil(step / 7) * 7);
+  let start = step >= 7 ? xMin + ((((4 - xMin) % 7) + 7) % 7) : xMin;
+  if (cfg.weekly) start = weekStart(xMin) + 3;
+  ctx.textAlign = 'center';
+  for (let x = start; x <= xMax; x += step) {
+    const px = toX(x);
+    ctx.strokeStyle = C.grid;
+    ctx.beginPath(); ctx.moveTo(px, pad.top); ctx.lineTo(px, H - pad.bottom); ctx.stroke();
+    ctx.fillStyle = C.axis;
+    ctx.fillText(fmtShort(fromDayNum(cfg.weekly ? x - 3 : x)), px, H - pad.bottom + 15);
+  }
+
+  // Band (e.g. avg vs target), coloured by sign
+  if (cfg.band) {
+    const b = cfg.band.points;
+    for (let i = 1; i < b.length; i++) {
+      const p = b[i - 1], q = b[i];
+      if (q.x - p.x !== 1) continue;
+      const above = (p.a - p.b) + (q.a - q.b) > 0;
+      ctx.fillStyle = above ? cfg.band.above : cfg.band.below;
+      ctx.beginPath();
+      ctx.moveTo(toX(p.x), toY(p.a)); ctx.lineTo(toX(q.x), toY(q.a));
+      ctx.lineTo(toX(q.x), toY(q.b)); ctx.lineTo(toX(p.x), toY(p.b));
+      ctx.closePath(); ctx.fill();
+    }
+  }
+
+  // Thresholds
+  for (const t of cfg.thresholds || []) {
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = t.color; ctx.lineWidth = 1.5;
+    const ty = toY(t.y);
+    ctx.beginPath(); ctx.moveTo(pad.left, ty); ctx.lineTo(W - pad.right, ty); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Bars first, then lines on top
+  const pxPerDay = pw / (x1 - x0);
+  for (const s of cfg.series.filter(s => s.type === 'bar')) {
+    const bw = Math.max(2, (s.barWidth || 0.7) * pxPerDay);
+    const base = toY(Math.max(yLo, 0));
+    for (const p of s.points) {
+      if (p.y == null) continue;
+      const y = toY(p.y);
+      ctx.fillStyle = (hoverX != null && p.x === hoverX) ? (s.hoverColor || s.color) : s.color;
+      ctx.globalAlpha = hoverX != null && p.x !== hoverX ? 0.75 : 1;
+      ctx.fillRect(toX(p.x) - bw / 2, Math.min(y, base), bw, Math.abs(base - y));
+    }
+    ctx.globalAlpha = 1;
+  }
+  for (const s of cfg.series.filter(s => s.type !== 'bar')) {
+    ctx.strokeStyle = s.color;
+    ctx.lineWidth = s.width || 2;
+    ctx.lineJoin = 'round';
+    ctx.setLineDash(s.dash || []);
+    ctx.beginPath();
+    let prev = null;
+    for (const p of s.points) {
+      if (p.y == null) { prev = null; continue; }
+      const x = toX(p.x), y = toY(p.y);
+      if (!prev || (s.maxGap && p.x - prev.x > s.maxGap)) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      prev = p;
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if (s.dots && (s.dots === 'always' || s.points.length <= 90)) {
+      ctx.fillStyle = s.color;
+      for (const p of s.points) {
+        if (p.y == null) continue;
+        ctx.beginPath(); ctx.arc(toX(p.x), toY(p.y), s.dotSize || 2.5, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+  }
+
+  // Event markers along the bottom of the plot
+  for (const m of cfg.markers || []) {
+    ctx.fillStyle = m.color;
+    ctx.beginPath();
+    ctx.arc(toX(m.x), pad.top + ph - 4 - m.row * 7, 2.6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Hover crosshair + highlighted points
+  if (hoverX != null) {
+    const hx = toX(hoverX);
+    ctx.strokeStyle = C.axis; ctx.globalAlpha = 0.5; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(hx, pad.top); ctx.lineTo(hx, H - pad.bottom); ctx.stroke();
+    ctx.globalAlpha = 1;
+    for (const s of cfg.series.filter(s => s.type !== 'bar' && !s.noHover)) {
+      const p = s.points.find(p => p.x === hoverX && p.y != null);
+      if (!p) continue;
+      ctx.beginPath(); ctx.arc(hx, toY(p.y), 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = C.surface; ctx.fill();
+      ctx.lineWidth = 2; ctx.strokeStyle = s.color; ctx.stroke();
+    }
+  }
+}
+
+function attachHover(id) {
+  const canvas = document.getElementById(id);
+  if (!canvas || canvas._hoverBound) return;
+  canvas._hoverBound = true;
+  const tip = canvas.parentElement.querySelector('.chart-tip');
+  const hide = () => { tip.style.display = 'none'; paintChart(id, null); };
+  const show = ev => {
+    const cfg = CHARTS[id];
+    if (!cfg || !cfg._geo || !cfg.tooltip) return;
+    const r = canvas.getBoundingClientRect();
+    let x = cfg._geo.invX(ev.clientX - r.left);
+    if (cfg.snapTo && cfg.snapTo.length) {
+      x = cfg.snapTo.reduce((best, v) => Math.abs(v - x) < Math.abs(best - x) ? v : best, cfg.snapTo[0]);
+    } else x = Math.round(x);
+    if (x < cfg.xMin || x > cfg.xMax) { hide(); return; }
+    const html = cfg.tooltip(x);
+    if (!html) { hide(); return; }
+    paintChart(id, x);
+    tip.innerHTML = html;
+    tip.style.display = 'block';
+    const px = cfg._geo.toX(x);
+    const tw = tip.offsetWidth;
+    tip.style.left = (px + 12 + tw > cfg._geo.W ? Math.max(0, px - 12 - tw) : px + 12) + 'px';
+  };
+  canvas.addEventListener('pointermove', show);
+  canvas.addEventListener('pointerdown', show);
+  canvas.addEventListener('pointerleave', ev => { if (ev.pointerType !== 'touch') hide(); });
+  document.addEventListener('pointerdown', ev => { if (ev.target !== canvas && tip.style.display === 'block') hide(); });
+}
+
+const tipRow = (label, value) => value == null ? '' : `<div class="row"><span>${label}</span><b>${value}</b></div>`;
 
 // ═══════════════════════════════════════════════════
 //  CHARTS
@@ -1077,225 +1931,218 @@ function renderStats() {
 
 function setChartRange(days) {
   chartRange = days;
-  document.querySelectorAll('.chart-controls button').forEach(b => b.classList.remove('active'));
-  const id = days === 0 ? 'cr-all' : `cr-${days}`;
-  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('#range-seg button').forEach(b => b.classList.toggle('active', Number(b.dataset.range) === days));
   renderCharts();
+}
+
+function setTrendWindow(days) {
+  setPref('trend', days);
+  renderCharts();
+  renderStats();
 }
 
 function filterByRange(enriched) {
   if (chartRange === 0) return enriched;
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - chartRange);
-  const cut = cutoff.toISOString().slice(0, 10);
-  return enriched.filter(e => e.date >= cut);
+  const cut = dayNum(todayStr()) - chartRange;
+  return enriched.filter(e => e.x > cut);
 }
 
 function renderCharts() {
   const all = enrich(loadEntries());
   const data = filterByRange(all);
-  drawWeightChart(data);
+  const tgt = loadTargets();
+  const win = loadPrefs().trend;
+  document.querySelectorAll('#trend-seg button').forEach(b => b.classList.toggle('active', Number(b.dataset.trend) === win));
+  document.getElementById('legend-trend').textContent = `Trend projection (last ${win} days)`;
+  document.getElementById('steps-target-label').textContent = `Target ${tgt.steps}k`;
+  document.getElementById('alcohol-target-label').textContent =
+    `Target: ≤${tgt.units} units/week. Each drink counted as ${UNITS_PER_DRINK} units. Bars show daily units.`;
+  drawWeightChart(all, data);
   drawStepsChart(data);
   drawAlcoholChart(data);
-  const tgt = loadTargets();
-  const lbl = document.getElementById('alcohol-target-label');
-  if (lbl) lbl.textContent = `Target: ≤${tgt.units} units/week. Each drink counted as 2 units.`;
+  drawGymCharts(data);
 }
 
-// ── Tiny canvas chart engine ──────────────────────
+function drawWeightChart(all, data) {
+  const id = 'chart-canvas';
+  if (!data.length) return clearChart(id, 'No entries in this range');
+  const bounds = getTargetBounds();
+  const byX = Object.fromEntries(data.map(e => [e.x, e]));
+  const firstX = data[0].x, lastX = all[all.length - 1].x;
+  const endX = bounds ? Math.max(lastX, dayNum(bounds.end.date)) : lastX;
 
-function drawChart(canvasId, datasets, opts = {}) {
-  const canvas = document.getElementById(canvasId);
-  if (!canvas) return;
-  const dpr = window.devicePixelRatio || 1;
-  canvas.width  = canvas.offsetWidth  * dpr;
-  canvas.height = canvas.offsetHeight * dpr;
-  const ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
-  const W = canvas.offsetWidth;
-  const H = canvas.offsetHeight;
-  const pad = { top: 14, right: 18, bottom: 36, left: 46 };
-  const pw = W - pad.left - pad.right;
-  const ph = H - pad.top  - pad.bottom;
+  const daily = data.filter(e => e.weight != null).map(e => ({ x: e.x, y: e.weight }));
+  const avg = data.filter(e => e.weightedAvg != null).map(e => ({ x: e.x, y: e.weightedAvg }));
+  const target = [];
+  if (bounds) for (let x = firstX; x <= endX; x++) target.push({ x, y: targetWeight(fromDayNum(x)) });
+  const targetByX = Object.fromEntries(target.map(p => [p.x, p.y]));
 
-  // Determine y-range
-  let yMin = Infinity, yMax = -Infinity;
-  for (const ds of datasets) {
-    for (const v of ds.values) {
-      if (v != null && isFinite(v)) { yMin = Math.min(yMin, v); yMax = Math.max(yMax, v); }
-    }
+  const fit = trendFit(all, loadPrefs().trend);
+  const lastAvgEntry = [...all].reverse().find(e => e.weightedAvg != null);
+  const trendLine = [], required = [];
+  if (fit && endX > lastX) {
+    // fitted line through the window, then projected on to the plan end
+    for (let x = Math.max(firstX, lastX - fit.windowDays + 1); x <= endX; x++) trendLine.push({ x, y: fit.at(x) });
   }
-  if (opts.yMin != null) yMin = Math.min(yMin, opts.yMin);
-  if (opts.yMax != null) yMax = Math.max(yMax, opts.yMax);
-  if (yMin === yMax) { yMin -= 1; yMax += 1; }
-  const yRange = yMax - yMin;
-  const yPad = yRange * 0.08;
-  const yLo = yMin - yPad, yHi = yMax + yPad;
-  const n = datasets[0].values.length;
-
-  const toX = (i) => pad.left + (n <= 1 ? pw / 2 : i / (n - 1) * pw);
-  const toY = (v) => pad.top + (1 - (v - yLo) / (yHi - yLo)) * ph;
-
-  // Grid + axes
-  ctx.strokeStyle = '#e5e7eb';
-  ctx.lineWidth = 1;
-  const yTicks = 4;
-  ctx.font = '10px -apple-system,sans-serif';
-  ctx.fillStyle = '#57606a';
-  ctx.textAlign = 'right';
-  for (let t = 0; t <= yTicks; t++) {
-    const v = yLo + (yHi - yLo) * (t / yTicks);
-    const y = toY(v);
-    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
-    ctx.fillText(v.toFixed(opts.yDec ?? 1), pad.left - 4, y + 3);
+  if (bounds && lastAvgEntry && endX > lastAvgEntry.x) {
+    required.push({ x: lastAvgEntry.x, y: lastAvgEntry.weightedAvg }, { x: endX, y: bounds.end.wt });
+  }
+  const markers = [];
+  for (const e of data) {
+    if (e.gym) markers.push({ x: e.x, row: 0, color: css('--c-gym') });
+    if (e.drinks > 0) markers.push({ x: e.x, row: 1, color: css('--c-drink') });
   }
 
-  // X labels: show ~6 evenly spaced dates
-  ctx.textAlign = 'center';
-  const xStep = Math.max(1, Math.floor(n / 6));
-  const labels = datasets[0].labels;
-  for (let i = 0; i < n; i += xStep) {
-    const x = toX(i);
-    const d = new Date(labels[i]);
-    const label = `${d.getDate()}/${d.getMonth() + 1}`;
-    ctx.fillText(label, x, H - pad.bottom + 14);
-    ctx.beginPath(); ctx.strokeStyle = '#e5e7eb'; ctx.moveTo(x, pad.top); ctx.lineTo(x, H - pad.bottom); ctx.stroke();
-  }
-
-  // Target line
-  if (opts.targetFn) {
-    ctx.setLineDash([4, 4]);
-    ctx.strokeStyle = '#f87171';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    for (let i = 0; i < n; i++) {
-      const tv = opts.targetFn(labels[i]);
-      const x = toX(i), y = toY(tv);
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-    ctx.setLineDash([]);
-  }
-
-  // Threshold line
-  if (opts.threshold != null) {
-    ctx.setLineDash([4, 4]);
-    ctx.strokeStyle = '#fbbf24';
-    ctx.lineWidth = 1.5;
-    const ty = toY(opts.threshold);
-    ctx.beginPath(); ctx.moveTo(pad.left, ty); ctx.lineTo(W - pad.right, ty); ctx.stroke();
-    ctx.setLineDash([]);
-  }
-
-  // Datasets
-  for (const ds of datasets) {
-    if (ds.type === 'bar') {
-      const bw = Math.max(2, pw / n * 0.6);
-      for (let i = 0; i < n; i++) {
-        const v = ds.values[i];
-        if (v == null) continue;
-        const x = toX(i);
-        const y = toY(v);
-        const base = toY(0) < H - pad.bottom ? toY(0) : H - pad.bottom;
-        ctx.fillStyle = ds.color || '#3b82d4';
-        ctx.fillRect(x - bw / 2, Math.min(y, base), bw, Math.abs(base - y));
-      }
-    } else {
-      // Line
-      ctx.strokeStyle = ds.color || '#3b82d4';
-      ctx.lineWidth = ds.lineWidth || 2;
-      ctx.lineJoin = 'round';
-      ctx.setLineDash(ds.dash || []);
-      ctx.beginPath();
-      let started = false;
-      for (let i = 0; i < n; i++) {
-        const v = ds.values[i];
-        if (v == null) { started = false; continue; }
-        const x = toX(i), y = toY(v);
-        if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y);
-      }
-      ctx.stroke();
-      ctx.setLineDash([]);
-
-      // Dots for small datasets
-      if (n <= 60 && ds.dots !== false) {
-        for (let i = 0; i < n; i++) {
-          const v = ds.values[i];
-          if (v == null) continue;
-          ctx.beginPath();
-          ctx.arc(toX(i), toY(v), 2.5, 0, Math.PI * 2);
-          ctx.fillStyle = ds.color || '#3b82d4';
-          ctx.fill();
-        }
-      }
-    }
-  }
-}
-
-function drawWeightChart(data) {
-  if (!data.length) return;
-
-  // Build a unified date axis: all recorded dates + every remaining day to end of target
-  const today = todayStr();
-  const { end } = getTargetBounds();
-  const endDate = end.date;
-  const allDates = new Set(data.map(e => e.date));
-
-  // Fill forward from last entry date to end of plan
-  const lastDate = data[data.length - 1].date;
-  let cur = new Date(lastDate + 'T00:00:00');
-  const endDt = new Date(endDate + 'T00:00:00');
-  while (cur <= endDt) {
-    allDates.add(cur.toISOString().slice(0, 10));
-    cur.setDate(cur.getDate() + 1);
-  }
-
-  const labels = [...allDates].sort();
-  const dataByDate = Object.fromEntries(data.map(e => [e.date, e]));
-
-  const actualVals  = labels.map(d => dataByDate[d]?.weight      ?? null);
-  const avgVals     = labels.map(d => dataByDate[d]?.weightedAvg ?? null);
-  const targetVals  = labels.map(d => targetWeight(d));
-
-  // Projected: last known weighted avg → target end weight, from today onward
-  const lastKnownEntry = data[data.length - 1];
-  const lastAvg = lastKnownEntry.weightedAvg ?? lastKnownEntry.weight;
-  const projVals = labels.map(d => {
-    if (d <= today) return null;
-    if (!lastAvg) return null;
-    const t0 = new Date(today + 'T00:00:00').getTime();
-    const t1 = new Date(endDate + 'T00:00:00').getTime();
-    const td = new Date(d + 'T00:00:00').getTime();
-    if (t1 <= t0) return null;
-    const frac = (td - t0) / (t1 - t0);
-    return lastAvg + frac * (end.wt - lastAvg);
+  const allY = [...daily, ...avg].map(p => p.y);
+  const trendAtEnd = trendLine.length ? trendLine[trendLine.length - 1].y : null;
+  renderChart(id, {
+    xMin: firstX, xMax: endX,
+    yMin: Math.min(...allY, bounds ? bounds.end.wt : Infinity, trendAtEnd ?? Infinity) - 0.6,
+    yMax: Math.max(...allY), yDec: 1,
+    band: { points: avg.filter(p => targetByX[p.x] != null).map(p => ({ x: p.x, a: p.y, b: targetByX[p.x] })),
+            above: css('--c-band-above'), below: css('--c-band-below') },
+    series: [
+      { points: target,    color: css('--c-target'),   width: 1.5, dash: [4, 4], noHover: true },
+      { points: required,  color: css('--c-required'), width: 1.5, dash: [2, 4], noHover: true },
+      { points: trendLine, color: css('--c-trend'),    width: 1.75, dash: [6, 4], noHover: true },
+      { points: daily,     color: css('--c-daily'),    width: 1.25, dots: true },
+      { points: avg,       color: css('--c-avg'),      width: 2.5 },
+    ],
+    markers,
+    tooltip: x => {
+      const e = byX[x];
+      const d = fromDayNum(x);
+      const tw = targetByX[x];
+      let html = `<b>${fmtDate(d)}</b>`;
+      if (e) {
+        html += tipRow('Weight', e.weight != null ? fx(e.weight, 2) + ' kg' : null);
+        html += tipRow('7d avg', e.weightedAvg != null ? fx(e.weightedAvg, 2) : null);
+        html += tipRow('Plan', tw != null ? fx(tw, 2) : null);
+        html += tipRow('Avg vs plan', e.weightedAvg != null && tw != null ? signed(e.weightedAvg - tw, 2) : null);
+        if (e.gym) html += tipRow('Gym', e.gym.cardioMin ? `${e.gym.cardioMin} min cardio` : '✓');
+        if (e.drinks) html += tipRow('Drinks', e.drinks);
+      } else if (x > lastX) {
+        html += tipRow('Plan', tw != null ? fx(tw, 2) + ' kg' : null);
+        if (fit) html += tipRow('Trend', fx(fit.at(x), 2) + ' kg');
+      } else return null;
+      return html;
+    },
   });
-
-  drawChart('chart-canvas', [
-    { labels, values: actualVals, color: '#94a3b8', lineWidth: 1.5 },
-    { labels, values: avgVals,    color: '#3b82d4', lineWidth: 2.5 },
-    { labels, values: projVals,   color: '#3b82d4', lineWidth: 1.5, dash: [5, 4], dots: false },
-    { labels, values: targetVals, color: '#f87171', lineWidth: 1.5, dash: [4, 4], dots: false },
-  ], { yMin: end.wt - 1, yDec: 1 });
 }
 
 function drawStepsChart(data) {
-  if (!data.length) return;
-  const labels = data.map(e => e.date);
+  const id = 'steps-canvas';
+  if (!data.length) return clearChart(id, 'No entries in this range');
   const tgt = loadTargets();
-  drawChart('steps-canvas', [
-    { labels, values: data.map(e => e.steps),   color: '#6366f1', lineWidth: 1.5, type: 'bar' },
-    { labels, values: data.map(e => e.stepAvg), color: '#a78bfa', lineWidth: 2, dots: false },
-  ], { threshold: tgt.steps, yMin: 0, yDec: 0 });
+  const byX = Object.fromEntries(data.map(e => [e.x, e]));
+  renderChart(id, {
+    xMin: data[0].x, xMax: data[data.length - 1].x, xPad: 0.6,
+    zeroBase: true, yMin: 0, yDec: 0,
+    thresholds: [{ y: tgt.steps, color: css('--c-threshold') }],
+    series: [
+      { type: 'bar', points: data.map(e => ({ x: e.x, y: e.steps })), color: css('--c-steps'), barWidth: 0.65 },
+      { points: data.map(e => ({ x: e.x, y: e.stepAvg })), color: css('--c-steps-avg'), width: 2 },
+    ],
+    tooltip: x => {
+      const e = byX[x]; if (!e) return null;
+      return `<b>${fmtDate(e.date)}</b>` + tipRow('Steps', e.steps != null ? fx(e.steps, 1) + 'k' : '—') + tipRow('7d avg', fx(e.stepAvg, 1) + 'k');
+    },
+  });
 }
 
 function drawAlcoholChart(data) {
-  if (!data.length) return;
-  const labels = data.map(e => e.date);
+  const id = 'alcohol-canvas';
+  if (!data.length) return clearChart(id, 'No entries in this range');
   const tgt = loadTargets();
-  drawChart('alcohol-canvas', [
-    { labels, values: data.map(e => e.rollingUnits), color: '#fb923c', lineWidth: 2 },
-  ], { threshold: tgt.units, yMin: 0, yDec: 0 });
+  const byX = Object.fromEntries(data.map(e => [e.x, e]));
+  renderChart(id, {
+    xMin: data[0].x, xMax: data[data.length - 1].x, xPad: 0.6,
+    zeroBase: true, yMin: 0, yDec: 0,
+    thresholds: [{ y: tgt.units, color: css('--c-threshold') }],
+    series: [
+      { type: 'bar', points: data.filter(e => e.drinks).map(e => ({ x: e.x, y: e.drinks * UNITS_PER_DRINK })), color: css('--c-alcohol-bar'), barWidth: 0.65 },
+      { points: data.map(e => ({ x: e.x, y: e.rollingUnits })), color: css('--c-alcohol'), width: 2 },
+    ],
+    tooltip: x => {
+      const e = byX[x]; if (!e) return null;
+      return `<b>${fmtDate(e.date)}</b>` + tipRow('Drinks', e.drinks || 0) + tipRow('7-day units', fx(e.rollingUnits, 0));
+    },
+  });
+}
+
+function drawGymCharts(data) {
+  const statsEl = document.getElementById('gym-stats');
+  const sessions = data.filter(e => e.gym);
+  const weeks = data.length ? weeklyBuckets(data) : [];
+  // fill empty weeks so zero-session weeks show
+  const weekMap = new Map(weeks.map(w => [w.ws, w]));
+  const allWeeks = [];
+  if (weeks.length) {
+    for (let ws = weeks[0].ws; ws <= weeks[weeks.length - 1].ws; ws += 7) {
+      allWeeks.push(weekMap.get(ws) || { ws, gym: 0, cardioMin: 0, cardioKcal: 0, days: 0 });
+    }
+  }
+
+  const thisWs = weekStart(dayNum(todayStr()));
+  const thisWeek = allWeeks.find(w => w.ws === thisWs);
+  const fullWeeks = allWeeks.filter(w => w.ws < thisWs).slice(-4);
+  const avg4 = fullWeeks.length ? fullWeeks.reduce((a, w) => a + w.gym, 0) / fullWeeks.length : null;
+  statsEl.innerHTML = `
+    <div><div class="v">${thisWeek ? thisWeek.gym : 0}</div><div class="l">sessions this week</div></div>
+    <div><div class="v">${avg4 != null ? avg4.toFixed(1) : '—'}</div><div class="l">avg/week (last ${fullWeeks.length || 4} full wks)</div></div>
+    <div><div class="v">${thisWeek ? thisWeek.cardioMin : 0}</div><div class="l">cardio min this week</div></div>
+    <div><div class="v">${sessions.length}</div><div class="l">sessions in range</div></div>`;
+
+  if (!allWeeks.length) {
+    clearChart('gym-sessions-canvas', 'No gym sessions in this range');
+    clearChart('gym-cardio-canvas', '');
+    clearChart('gym-lift-canvas', '');
+    document.getElementById('lift-chips').innerHTML = '';
+    return;
+  }
+
+  const centres = allWeeks.map(w => w.ws + 3);
+  const byCentre = Object.fromEntries(allWeeks.map(w => [w.ws + 3, w]));
+  const weekTip = x => {
+    const w = byCentre[x]; if (!w) return null;
+    return `<b>w/c ${fmtShort(fromDayNum(w.ws))}</b>` + tipRow('Sessions', w.gym) +
+      tipRow('Cardio', w.cardioMin + ' min') + tipRow('Cardio kcal', w.cardioKcal || '—');
+  };
+  const xMin = centres[0], xMax = centres[centres.length - 1];
+
+  renderChart('gym-sessions-canvas', {
+    xMin, xMax, xPad: 3.5, weekly: true, zeroBase: true, yMin: 0, yMax: 4, yDec: 0,
+    series: [{ type: 'bar', points: allWeeks.map(w => ({ x: w.ws + 3, y: w.gym })), color: css('--c-gym'), barWidth: 4.5 }],
+    snapTo: centres, tooltip: weekTip,
+  });
+  renderChart('gym-cardio-canvas', {
+    xMin, xMax, xPad: 3.5, weekly: true, zeroBase: true, yMin: 0, yDec: 0,
+    series: [{ type: 'bar', points: allWeeks.map(w => ({ x: w.ws + 3, y: w.cardioMin })), color: css('--c-cardio'), barWidth: 4.5 }],
+    snapTo: centres, tooltip: weekTip,
+  });
+
+  // Strength: exercises logged in ≥3 sessions, most frequent first
+  const freq = {};
+  for (const s of sessions) for (const k of Object.keys(s.gym.lifts)) freq[k] = (freq[k] || 0) + 1;
+  const lifts = Object.keys(freq).filter(k => freq[k] >= 3).sort((a, b) => freq[b] - freq[a]);
+  const chips = document.getElementById('lift-chips');
+  if (!lifts.length) { chips.innerHTML = ''; clearChart('gym-lift-canvas', 'Not enough strength data in this range'); return; }
+  let lift = loadPrefs().lift;
+  if (!lifts.includes(lift)) lift = lifts[0];
+  chips.innerHTML = lifts.map(k => `<button class="chip ${k === lift ? 'active' : ''}" data-lift="${escAttr(k)}">${escHtml(k)} <span style="opacity:.7">${freq[k]}</span></button>`).join('');
+
+  const pts = sessions.filter(s => s.gym.lifts[lift] != null).map(s => ({ x: s.x, y: s.gym.lifts[lift] }));
+  const byX = Object.fromEntries(sessions.map(s => [s.x, s]));
+  renderChart('gym-lift-canvas', {
+    xMin: data[0].x, xMax: data[data.length - 1].x, xPad: 0.5, yDec: 1,
+    series: [{ points: pts, color: css('--c-lift'), width: 2, dots: 'always', dotSize: 3 }],
+    snapTo: pts.map(p => p.x),
+    tooltip: x => {
+      const s = byX[x]; if (!s || s.gym.lifts[lift] == null) return null;
+      return `<b>${fmtDate(s.date)}</b>` + tipRow(lift, s.gym.lifts[lift]) +
+        (s.gym.location ? tipRow('Location', s.gym.location) : '') + tipRow('Exercises', s.gym.exercises || '—');
+    },
+  });
 }
 
 // ═══════════════════════════════════════════════════
@@ -1304,9 +2151,11 @@ function drawAlcoholChart(data) {
 
 function renderHistory() {
   const all = enrich(loadEntries());
+  renderWeekly(all);
+
   const search = document.getElementById('history-search').value.toLowerCase().trim();
   const filtered = search
-    ? all.filter(e => (e.notes || '').toLowerCase().includes(search) || e.date.includes(search))
+    ? all.filter(e => (e.notes || '').toLowerCase().includes(search) || e.date.includes(search) || fmtDate(e.date).toLowerCase().includes(search))
     : all;
   const reversed = [...filtered].reverse();
 
@@ -1314,69 +2163,117 @@ function renderHistory() {
     `${filtered.length} entr${filtered.length === 1 ? 'y' : 'ies'}`;
 
   const tbody = document.getElementById('history-body');
+  const cards = document.getElementById('history-cards');
   const empty = document.getElementById('history-empty');
 
   if (!reversed.length) {
-    tbody.innerHTML = '';
+    tbody.innerHTML = ''; cards.innerHTML = '';
     empty.style.display = '';
     return;
   }
   empty.style.display = 'none';
 
   const today = todayStr();
-  tbody.innerHTML = reversed.map(e => {
-    const isToday = e.date === today;
-    const isGym = e.notes && /gym/i.test(e.notes);
-    const hasDrinks = (e.drinks || 0) > 0;
-
+  const rows = reversed.map(e => {
     const tgt = targetWeight(e.date);
     const avgDelta = (e.weightedAvg != null && tgt != null) ? (e.weightedAvg - tgt) : null;
     const avgDeltaHtml = avgDelta != null
-      ? `<span class="delta ${avgDelta > 0.2 ? 'up' : avgDelta < -0.2 ? 'down' : 'flat'}">${avgDelta > 0 ? '+' : ''}${avgDelta.toFixed(2)}</span>`
+      ? `<span class="delta ${avgDelta > 0.2 ? 'up' : avgDelta < -0.2 ? 'down' : 'flat'}">${signed(avgDelta, 2)}</span>`
       : '—';
-
-    const fastHtml = e.fastDuration != null
-      ? `${e.fastDuration.toFixed(1)}h`
-      : (e.fastStart ? e.fastStart : '—');
-
-    const notesHtml = e.notes
-      ? `<div class="notes-cell" title="${e.notes.replace(/"/g,'&quot;')}">${escHtml(e.notes)}</div>`
-      : '<span style="color:var(--muted)">—</span>';
-
+    const fastHtml = e.fastDuration != null ? `${e.fastDuration.toFixed(1)}h` : '—';
     const tags = [
-      isGym ? '<span class="tag gym">🏋️ gym</span>' : '',
-      hasDrinks ? `<span class="tag drink">🍷 ${e.drinks}</span>` : '',
+      e.gym ? '<span class="tag gym">🏋️ gym</span>' : '',
+      e.drinks ? `<span class="tag drink">🍷 ${e.drinks}</span>` : '',
     ].filter(Boolean).join(' ');
+    return { e, tgt, avgDeltaHtml, fastHtml, tags, isToday: e.date === today };
+  });
 
-    return `<tr class="${isToday ? 'today-row' : ''}">
+  tbody.innerHTML = rows.map(({ e, tgt, avgDeltaHtml, fastHtml, tags, isToday }) => `
+    <tr class="${isToday ? 'today-row' : ''}">
       <td style="white-space:nowrap"><strong>${fmtDate(e.date)}</strong>${tags ? '<br>' + tags : ''}</td>
-      <td>${e.weight != null ? e.weight.toFixed(2) : '—'}</td>
-      <td>${tgt != null ? tgt.toFixed(2) : '—'}</td>
-      <td>${e.weightedAvg != null ? e.weightedAvg.toFixed(2) : '—'}</td>
-      <td>${avgDeltaHtml}</td>
-      <td style="white-space:nowrap">${fastHtml}</td>
-      <td>${e.steps != null ? e.steps.toFixed(1) + 'k' : '—'}</td>
-      <td>${e.drinks || 0}</td>
-      <td>${e.rollingUnits != null ? e.rollingUnits.toFixed(0) : '—'}</td>
-      <td>${e.rp != null ? e.rp : '—'}</td>
-      <td>${notesHtml}</td>
-      <td><button class="edit-btn" onclick="editEntry('${e.date}')" title="Edit">✎</button></td>
+      <td class="num">${fx(e.weight, 2)}</td>
+      <td class="num">${fx(tgt, 2)}</td>
+      <td class="num">${fx(e.weightedAvg, 2)}</td>
+      <td class="num">${avgDeltaHtml}</td>
+      <td class="num">${fastHtml}</td>
+      <td class="num">${e.steps != null ? e.steps.toFixed(1) + 'k' : '—'}</td>
+      <td class="num">${e.drinks || 0}</td>
+      <td class="num">${e.rollingUnits.toFixed(0)}</td>
+      <td class="num">${e.rp != null ? e.rp : '—'}</td>
+      <td>${e.notes ? `<div class="notes-cell" title="${escAttr(e.notes)}">${escHtml(e.notes)}</div>` : '<span style="color:var(--muted)">—</span>'}</td>
+      <td style="white-space:nowrap">
+        <button class="edit-btn" data-edit="${e.date}" title="Edit">✎</button>
+        <button class="edit-btn del" data-del="${e.date}" title="Delete">✕</button>
+      </td>
+    </tr>`).join('');
+
+  cards.innerHTML = rows.map(({ e, tgt, avgDeltaHtml, fastHtml, tags, isToday }) => `
+    <div class="h-card ${isToday ? 'today' : ''}">
+      <div class="h-card-top">
+        <span class="date">${fmtDate(e.date)}</span> ${tags}
+        <span class="wt">${fx(e.weight, 2)}</span>
+      </div>
+      <div class="h-card-grid">
+        <div><span>avg</span> ${fx(e.weightedAvg, 2)}</div>
+        <div><span>vs plan</span> ${avgDeltaHtml}</div>
+        <div><span>plan</span> ${fx(tgt, 1)}</div>
+        <div><span>fast</span> ${fastHtml}</div>
+        <div><span>steps</span> ${e.steps != null ? e.steps.toFixed(1) + 'k' : '—'}</div>
+        <div><span>units 7d</span> ${e.rollingUnits.toFixed(0)}</div>
+      </div>
+      ${e.notes ? `<div class="h-card-notes">${escHtml(e.notes)}</div>` : ''}
+      <div class="h-card-actions">
+        <button class="edit-btn" data-edit="${e.date}">✎ Edit</button>
+        <button class="edit-btn del" data-del="${e.date}">✕ Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+let _showAllWeeks = false;
+function renderWeekly(all) {
+  const body = document.getElementById('weekly-body');
+  const allWeeks = weeklyBuckets(all).reverse();
+  const toggle = document.getElementById('btn-weeks-toggle');
+  toggle.style.display = allWeeks.length > 8 ? '' : 'none';
+  toggle.textContent = _showAllWeeks ? 'Show last 8 weeks' : `Show all ${allWeeks.length} weeks`;
+  const weeks = _showAllWeeks ? allWeeks : allWeeks.slice(0, 9);   // 9th only feeds the Δ of the 8th
+  if (!weeks.length) { body.innerHTML = '<tr><td colspan="8" style="color:var(--muted)">No data yet</td></tr>'; return; }
+  body.innerHTML = weeks.slice(0, _showAllWeeks ? weeks.length : 8).map((w, i) => {
+    const prev = weeks[i + 1];
+    const d = prev && w.avgWeight != null && prev.avgWeight != null ? w.avgWeight - prev.avgWeight : null;
+    const cls = d == null ? '' : d < -0.05 ? 'down' : d > 0.05 ? 'up' : 'flat';
+    const isThis = w.ws === weekStart(dayNum(todayStr()));
+    return `<tr class="${isThis ? 'today-row' : ''}">
+      <td style="white-space:nowrap"><strong>${fmtShort(fromDayNum(w.ws))}</strong></td>
+      <td class="num">${fx(w.avgWeight, 2)}</td>
+      <td class="num">${d != null ? `<span class="delta ${cls}">${signed(d, 2)}</span>` : '—'}</td>
+      <td class="num">${w.avgSteps != null ? w.avgSteps.toFixed(1) + 'k' : '—'}</td>
+      <td class="num">${w.units}</td>
+      <td class="num">${w.gym}</td>
+      <td class="num">${w.avgFast != null ? w.avgFast.toFixed(1) + 'h' : '—'}</td>
+      <td class="num">${w.days}/7</td>
     </tr>`;
   }).join('');
 }
 
-function editEntry(dateStr) {
-  const entries = loadEntries();
-  const e = entries.find(x => x.date === dateStr);
-  if (!e) return;
+async function editEntry(dateStr) {
   showPage('today');
-  populateForm(e);
-  window.scrollTo(0, 0);
+  await loadDate(dateStr);
+}
+
+async function deleteFromHistory(dateStr) {
+  if (!confirm('Delete the entry for ' + fmtDate(dateStr) + '?')) return;
+  const res = await deleteEntry(dateStr);
+  if (document.getElementById('f-date').value === dateStr) populateFor(dateStr);
+  renderHistory();
+  if (!res.ok) alert('Deleted on this device, but not synced to GitHub yet: ' + res.error);
 }
 
 // ═══════════════════════════════════════════════════
 //  TARGETS PAGE
 // ═══════════════════════════════════════════════════
+
+let _editingMilestones = null;
 
 function initTargetsForm() {
   const t = loadTargets();
@@ -1384,6 +2281,7 @@ function initTargetsForm() {
   document.getElementById('t-units').value = t.units ?? '';
   document.getElementById('t-fast').value  = t.fast  ?? '';
   document.getElementById('t-rp').value    = t.rp    ?? '';
+  _editingMilestones = null;
   renderMilestonesTable(t.milestones);
   renderTargetSummary(t);
 }
@@ -1393,44 +2291,30 @@ function renderMilestonesTable(milestones) {
   tbody.innerHTML = milestones.map((m, i) => `
     <tr>
       <td style="color:var(--muted);font-size:12px;">${i + 1}</td>
-      <td><input type="date" value="${m[0]}" onchange="updateMilestone(${i},0,this.value)"
-          style="border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:13px;width:140px;"></td>
-      <td><input type="number" value="${m[1]}" step="0.5" onchange="updateMilestone(${i},1,parseFloat(this.value))"
-          style="border:1px solid var(--border);border-radius:4px;padding:2px 6px;font-size:13px;width:80px;"></td>
-      <td><button class="edit-btn" onclick="removeMilestone(${i})" title="Remove">✕</button></td>
+      <td><input type="date" value="${m[0]}" data-ms="${i}" data-col="0"
+          style="padding:2px 6px;font-size:13px;width:150px;min-height:0;"></td>
+      <td><input type="number" value="${m[1]}" step="0.5" inputmode="decimal" data-ms="${i}" data-col="1"
+          style="padding:2px 6px;font-size:13px;width:90px;min-height:0;"></td>
+      <td><button class="edit-btn del" data-ms-remove="${i}" title="Remove">✕</button></td>
     </tr>`).join('');
 }
 
-// In-memory working copy of milestones while editing
-let _editingMilestones = null;
-
-function getMilestonesFromForm() {
-  return _editingMilestones || [...loadTargets().milestones];
-}
-
-function updateMilestone(i, col, val) {
+function editingMilestones() {
   if (!_editingMilestones) _editingMilestones = loadTargets().milestones.map(m => [...m]);
-  _editingMilestones[i][col] = val;
-}
-
-function removeMilestone(i) {
-  if (!_editingMilestones) _editingMilestones = loadTargets().milestones.map(m => [...m]);
-  _editingMilestones.splice(i, 1);
-  renderMilestonesTable(_editingMilestones);
+  return _editingMilestones;
 }
 
 function addMilestone() {
-  if (!_editingMilestones) _editingMilestones = loadTargets().milestones.map(m => [...m]);
-  const last = _editingMilestones[_editingMilestones.length - 1];
-  const nextDate = last ? new Date(new Date(last[0]).getTime() + 7 * 86400000).toISOString().slice(0,10) : todayStr();
-  _editingMilestones.push([nextDate, last ? last[1] : 82]);
-  renderMilestonesTable(_editingMilestones);
+  const ms = editingMilestones();
+  const last = ms[ms.length - 1];
+  ms.push([last ? addDays(last[0], 7) : todayStr(), last ? last[1] : 82]);
+  renderMilestonesTable(ms);
 }
 
 async function saveTargets() {
   const num = (id) => { const v = document.getElementById(id).value; return v === '' ? null : parseFloat(v); };
-  const milestones = getMilestonesFromForm()
-    .filter(m => m[0] && m[1] != null)
+  const milestones = (_editingMilestones || loadTargets().milestones)
+    .filter(m => m[0] && m[1] != null && !isNaN(m[1]))
     .sort((a, b) => a[0].localeCompare(b[0]));
   _editingMilestones = null;
   const t = {
@@ -1440,13 +2324,14 @@ async function saveTargets() {
     fast:  num('t-fast')  ?? DEFAULT_TARGETS.fast,
     rp:    num('t-rp'),
   };
-  await saveTargetsData(t);
+  const res = await saveTargetsData(t);
   renderMilestonesTable(milestones);
   renderTargetSummary(t);
-  ['targets-status','targets-status2'].forEach(id => {
-    const el = document.getElementById(id);
-    el.textContent = '✓ Saved';
-    setTimeout(() => { el.textContent = ''; }, 2500);
+  document.querySelectorAll('[data-targets-status]').forEach(el => {
+    el.textContent = res.ok ? '✓ Saved' : '⚠ Saved on this device only — not synced';
+    el.className = 'status ' + (res.ok ? 'good' : 'bad');
+    el.title = res.error || '';
+    if (res.ok) setTimeout(() => { el.textContent = ''; }, 2500);
   });
 }
 
@@ -1455,13 +2340,13 @@ function renderTargetSummary(t) {
   const ms = t.milestones;
   if (!ms || ms.length < 2) { el.innerHTML = ''; return; }
   const startDate = ms[0][0], startWt = ms[0][1];
-  const endDate   = ms[ms.length-1][0], endWt = ms[ms.length-1][1];
-  const days = Math.round((new Date(endDate) - new Date(startDate)) / 86400000);
+  const endDate = ms[ms.length - 1][0], endWt = ms[ms.length - 1][1];
+  const days = dayNum(endDate) - dayNum(startDate);
   const totalLoss = startWt - endWt;
   const weeks = days / 7;
   const perWeek = weeks > 0 ? totalLoss / weeks : 0;
   const today = todayStr();
-  const daysLeft = Math.max(0, Math.round((new Date(endDate) - new Date(today)) / 86400000));
+  const daysLeft = Math.max(0, dayNum(endDate) - dayNum(today));
   const currentTarget = targetWeight(today);
   el.innerHTML = `
     <strong style="color:var(--text)">Plan summary</strong><br>
@@ -1475,69 +2360,37 @@ function renderTargetSummary(t) {
 //  EXPORT
 // ═══════════════════════════════════════════════════
 
-async function resetData() {
-  if (!confirm('Clear all data and reload the 4 seed entries from the spreadsheet?')) return;
-  _entries = null;
-  localStorage.removeItem(STORAGE_KEY);
-  await seedIfEmpty();
-  renderStats();
-  clearForm();
-}
-
 function exportCSV() {
   const data = enrich(loadEntries());
-  const headers = ['date','weight','weightedAvg','sevenDayAvg','delta','fastStart','fastEnd','fastDuration',
-                   'steps','stepAvg','drinks','rollingUnits','rp','waist','bps','bpd','notes'];
-  const rows = data.map(e => headers.map(h => {
-    const v = e[h];
-    if (v == null) return '';
-    if (typeof v === 'string' && v.includes(',')) return `"${v.replace(/"/g,'""')}"`;
-    return typeof v === 'number' ? v.toFixed(4).replace(/\.?0+$/, '') : v;
-  }).join(','));
+  const headers = ['date', 'weight', 'weightedAvg', 'sevenDayAvg', 'delta', 'fastStart', 'fastEnd', 'fastDuration',
+                   'steps', 'stepAvg', 'drinks', 'rollingUnits', 'rp', 'waist', 'bps', 'bpd',
+                   'gymSession', 'cardioMin', 'cardioKcal', 'notes'];
+  const rows = data.map(e => {
+    const row = { ...e, gymSession: e.gym ? 1 : 0, cardioMin: e.gym ? e.gym.cardioMin : null, cardioKcal: e.gym ? e.gym.cardioKcal : null };
+    return headers.map(h => {
+      const v = row[h];
+      if (v == null) return '';
+      if (typeof v === 'string' && /[",\n]/.test(v)) return `"${v.replace(/"/g, '""')}"`;
+      return typeof v === 'number' ? (Number.isInteger(v) ? String(v) : v.toFixed(4).replace(/\.?0+$/, '')) : v;
+    }).join(',');
+  });
   const csv = [headers.join(','), ...rows].join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'weight-tracker.csv';
   a.click();
-}
-
-// ═══════════════════════════════════════════════════
-//  UTILITIES
-// ═══════════════════════════════════════════════════
-
-function fmtDate(d) {
-  if (!d) return '';
-  const dt = new Date(d + 'T00:00:00');
-  return dt.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
-}
-
-function escHtml(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-// ═══════════════════════════════════════════════════
-//  SEED DATA
-// ═══════════════════════════════════════════════════
-
-async function seedIfEmpty() {
-  if (loadEntries().length > 0) return;
-  const seed = [
-    {date:'2026-09-29',weight:93.5, steps:11.7,drinks:0, fastStart:'13:30',fastEnd:'19:45',rp:76, waist:null,bps:null, bpd:null, notes:null},
-    {date:'2026-09-30',weight:92.8, steps:4,   drinks:0, fastStart:'12:00',fastEnd:'20:00',rp:73, waist:null,bps:137,  bpd:95,   notes:null},
-    {date:'2026-10-01',weight:93.3, steps:5.9, drinks:0, fastStart:'12:15',fastEnd:'20:45',rp:71, waist:null,bps:null, bpd:null, notes:'Gym - 5m xt wu @L12, 4xGEM [shoulder:20[WWW], rowf:50[WWE], chest:40[WW5j], pec:20[FT]], S.16[146]'},
-    {date:'2026-10-02',weight:93,   steps:null,drinks:0, fastStart:null,   fastEnd:null,   rp:70, waist:null,bps:null, bpd:null, notes:null},
-  ];
-  await saveEntries(seed);
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 // ═══════════════════════════════════════════════════
 //  SETTINGS PAGE
 // ═══════════════════════════════════════════════════
 
-function setSyncStatus(msg, type) {
+function setSyncStatus(msg, type, title) {
   const el = document.getElementById('sync-status');
   el.textContent = msg;
+  el.title = title || '';
   el.style.color = type === 'good' ? 'var(--green)' : type === 'bad' ? 'var(--red)' : 'var(--muted)';
   if (type === 'good') setTimeout(() => { if (el.textContent === msg) el.textContent = ''; }, 3000);
 }
@@ -1551,7 +2404,7 @@ function initSettingsForm() {
   updateSyncInfo();
 }
 
-function saveSettings() {
+async function saveSettings() {
   const s = {
     owner:  document.getElementById('s-owner').value.trim(),
     repo:   document.getElementById('s-repo').value.trim(),
@@ -1559,47 +2412,48 @@ function saveSettings() {
     pat:    document.getElementById('s-pat').value.trim(),
   };
   persistSettings(s);
-  updateSyncInfo();
+  _sha = {};
   const el = document.getElementById('settings-status');
-  el.style.color = 'var(--green)';
-  el.textContent = '✓ Saved — reload to sync from GitHub';
+  el.className = 'status good';
+  el.textContent = '✓ Saved';
+  if (isConfigured()) await forcePull();
+  updateSyncInfo();
 }
 
 async function testConnection() {
   const el = document.getElementById('settings-status');
-  el.style.color = 'var(--muted)';
+  el.className = 'status';
   el.textContent = 'Testing…';
   try {
     const s = loadSettings();
-    const url = `https://api.github.com/repos/${s.owner}/${s.repo}`;
-    const res = await fetch(url, { headers: ghHeaders() });
-    if (res.ok) {
-      const j = await res.json();
-      el.style.color = 'var(--green)';
-      el.textContent = `✓ Connected to ${j.full_name} (${j.default_branch})`;
-    } else {
-      throw new Error(`${res.status} ${res.statusText}`);
-    }
-  } catch(e) {
-    el.style.color = 'var(--red)';
+    const res = await fetch(`https://api.github.com/repos/${s.owner}/${s.repo}`, { headers: ghHeaders(), cache: 'no-store' });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    const j = await res.json();
+    el.className = 'status good';
+    el.textContent = `✓ Connected to ${j.full_name} (${j.private ? 'private' : 'public'}, default branch ${j.default_branch})`;
+  } catch (e) {
+    el.className = 'status bad';
     el.textContent = '✗ ' + e.message;
   }
 }
 
 async function forcePull() {
   const el = document.getElementById('sync-card-status');
-  el.style.color = 'var(--muted)';
+  el.className = 'status';
   el.textContent = 'Pulling…';
   try {
-    _entries = null; _targets = null; _sha = {};
-    await loadEntriesAsync();
-    await loadTargetsAsync();
-    el.style.color = 'var(--green)';
-    el.textContent = '✓ Pulled from GitHub';
+    _sha = {};
+    await rebaseOnRemote();
+    _targets = normaliseTargets(await ghGet('targets.json'));
+    writeJSON(TARGETS_KEY, _targets);
+    _lastPull = Date.now();
+    const res = await flushPending();
+    el.className = 'status ' + (res.ok ? 'good' : 'bad');
+    el.textContent = res.ok ? '✓ Pulled from GitHub' : '⚠ Pulled, but local edits not synced: ' + res.error;
     updateSyncInfo();
-    renderStats();
-  } catch(e) {
-    el.style.color = 'var(--red)';
+    refreshFormIfClean();
+  } catch (e) {
+    el.className = 'status bad';
     el.textContent = '✗ ' + e.message;
   }
 }
@@ -1607,46 +2461,119 @@ async function forcePull() {
 function updateSyncInfo() {
   const el = document.getElementById('sync-info');
   if (!isConfigured()) {
-    el.textContent = 'Configure GitHub above to enable cloud sync.';
+    el.textContent = 'Configure GitHub above to enable cloud sync. Until then, entries are saved in this browser only.';
     return;
   }
   const s = loadSettings();
   const entries = loadEntries();
-  const lastEntry = entries.length
-    ? [...entries].sort((a,b) => b.date.localeCompare(a.date))[0]
-    : null;
+  const last = entries.length ? entries[entries.length - 1] : null;
+  const pending = loadPending().length;
   el.innerHTML = `
-    <strong style="color:var(--text)">Connected</strong> — ${s.owner}/${s.repo} (${s.branch || 'main'})<br>
-    ${entries.length} entries cached locally &nbsp;·&nbsp;
-    Last entry: ${lastEntry ? fmtDate(lastEntry.date) : 'none'}<br>
+    <strong style="color:var(--text)">Connected</strong> — ${escHtml(s.owner)}/${escHtml(s.repo)} (${escHtml(s.branch || 'main')})<br>
+    ${entries.length} entries cached locally &nbsp;·&nbsp; Last entry: ${last ? fmtDate(last.date) : 'none'}<br>
+    ${pending ? `<span style="color:var(--red)">${pending} edit${pending > 1 ? 's' : ''} waiting to sync</span><br>` : ''}
     Data files: <code>data.json</code>, <code>targets.json</code> in repo root.
-    Served at <code>https://${s.owner}.github.io/${s.repo}/</code>
   `;
 }
 
 // ═══════════════════════════════════════════════════
-//  INIT
+//  INIT & EVENTS
 // ═══════════════════════════════════════════════════
 
+function refreshFormIfClean() {
+  if (!isDirtyIgnoringDate() && !_autosaveTimer) {
+    const shown = document.getElementById('f-date').value;
+    populateFor(_formOpenedAsToday || !shown ? todayStr() : shown);
+  }
+  if (currentPage === 'targets' && _editingMilestones) return;   // don't wipe edits in progress
+  renderCurrentPage();
+}
+
+function bindEvents() {
+  document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => showPage(b.dataset.page)));
+  document.querySelectorAll('#range-seg button').forEach(b => b.addEventListener('click', () => setChartRange(Number(b.dataset.range))));
+  document.querySelectorAll('#trend-seg button').forEach(b => b.addEventListener('click', () => setTrendWindow(Number(b.dataset.trend))));
+  document.getElementById('lift-chips').addEventListener('click', ev => {
+    const b = ev.target.closest('[data-lift]');
+    if (b) { setPref('lift', b.dataset.lift); renderCharts(); }
+  });
+
+  document.getElementById('history-search').addEventListener('input', renderHistory);
+  document.getElementById('btn-weeks-toggle').addEventListener('click', () => { _showAllWeeks = !_showAllWeeks; renderHistory(); });
+  document.getElementById('btn-export-history').addEventListener('click', exportCSV);
+  document.getElementById('page-history').addEventListener('click', ev => {
+    const ed = ev.target.closest('[data-edit]');
+    const del = ev.target.closest('[data-del]');
+    if (ed) editEntry(ed.dataset.edit);
+    if (del) deleteFromHistory(del.dataset.del);
+  });
+
+  document.getElementById('btn-add-milestone').addEventListener('click', addMilestone);
+  document.querySelectorAll('[data-save-targets]').forEach(b => b.addEventListener('click', saveTargets));
+  document.getElementById('milestones-body').addEventListener('change', ev => {
+    const i = ev.target.dataset.ms;
+    if (i == null) return;
+    const col = Number(ev.target.dataset.col);
+    editingMilestones()[Number(i)][col] = col === 1 ? parseFloat(ev.target.value) : ev.target.value;
+  });
+  document.getElementById('milestones-body').addEventListener('click', ev => {
+    const b = ev.target.closest('[data-ms-remove]');
+    if (!b) return;
+    editingMilestones().splice(Number(b.dataset.msRemove), 1);
+    renderMilestonesTable(_editingMilestones);
+  });
+
+  document.getElementById('btn-save-settings').addEventListener('click', saveSettings);
+  document.getElementById('btn-test-connection').addEventListener('click', testConnection);
+  document.getElementById('btn-pull').addEventListener('click', forcePull);
+  document.getElementById('btn-export-settings').addEventListener('click', exportCSV);
+
+  // Redraw charts on resize and on light/dark switch
+  let rt;
+  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (currentPage === 'chart') renderCharts(); }, 120); });
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (currentPage === 'chart') renderCharts(); });
+
+  // Don't lose an auto-save that's waiting when the page is hidden/closed
+  const saveNow = () => {
+    if (_autosaveTimer) {
+      clearTimeout(_autosaveTimer); _autosaveTimer = null;
+      const entry = readForm();
+      if (!isEntryEmpty(entry)) { commitLocal({ type: 'upsert', entry }); _formSnapshot = JSON.stringify(entry); flushPending(); }
+    }
+  };
+  window.addEventListener('pagehide', saveNow);
+  window.addEventListener('beforeunload', ev => {
+    saveNow();
+    if (!loadPrefs().autosave && isDirtyIgnoringDate()) { ev.preventDefault(); ev.returnValue = ''; }
+  });
+
+  // Coming back to the tab (e.g. phone after laptop): retry unsynced edits and pick up changes made elsewhere
+  document.addEventListener('visibilitychange', async () => {
+    if (document.visibilityState === 'hidden') { saveNow(); return; }
+    if (!isConfigured()) { refreshFormIfClean(); return; }
+    await flushPending();
+    if (Date.now() - _lastPull > 60000 && !_autosaveTimer) {
+      await Promise.all([loadEntriesAsync(), loadTargetsAsync()]);
+      refreshFormIfClean();
+    }
+  });
+  window.addEventListener('online', () => flushPending());
+}
+
 async function init() {
-  // 1. Load from GitHub (or fall back to localStorage cache)
-  setSyncStatus('syncing…');
-  await Promise.all([loadEntriesAsync(), loadTargetsAsync()]);
-  setSyncStatus('');
-
-  // 2. Seed only if truly empty (no cache, no GitHub data)
-  await seedIfEmpty();
-
-  // 3. Render UI
-  initForm();
+  bindEvents();
+  initForm();          // render immediately from the local cache…
+  renderStats();
+  if (isConfigured()) {
+    setSyncStatus('syncing…');
+    await Promise.all([loadEntriesAsync(), loadTargetsAsync()]);   // …then refresh from GitHub
+    if (document.getElementById('sync-status').textContent === 'syncing…') setSyncStatus('');
+    refreshFormIfClean();
+    flushPending();
+  }
 }
 
 init();
-
-// Redraw charts on resize
-window.addEventListener('resize', () => {
-  if (currentPage === 'chart') renderCharts();
-});
 </script>
 </body>
 </html>
