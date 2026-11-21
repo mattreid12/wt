@@ -691,10 +691,10 @@
   {
     "date": "2026-11-21",
     "weight": 87.4,
-    "steps": null,
+    "steps": 10.6,
     "drinks": 0,
     "fastStart": "14:30",
-    "fastEnd": null,
+    "fastEnd": "19:00",
     "rp": null,
     "waist": null,
     "bps": null,
