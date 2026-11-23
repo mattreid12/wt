@@ -700,5 +700,18 @@
     "bps": null,
     "bpd": null,
     "notes": "Gym - WB 5[175]+9/h30[300-320]+1h30[370-380]+2, 1xGEM[twist:12[WWWW]], 10m xt @ L12/116c/159w [d164-27]"
+  },
+  {
+    "date": "2026-11-22",
+    "weight": 87.4,
+    "steps": null,
+    "drinks": 0,
+    "fastStart": "14:30",
+    "fastEnd": "19:30",
+    "rp": null,
+    "waist": null,
+    "bps": null,
+    "bpd": null,
+    "notes": null
   }
 ]
