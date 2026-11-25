@@ -730,7 +730,7 @@
   {
     "date": "2026-11-24",
     "weight": 87,
-    "steps": null,
+    "steps": 12.6,
     "drinks": 0,
     "fastStart": "13:45",
     "fastEnd": "19:00",
